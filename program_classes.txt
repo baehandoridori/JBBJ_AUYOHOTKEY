@@ -1,0 +1,21 @@
+ahk_class AE_CApplication_25.0
+ahk_class 742DEA58-ED6B-4402-BC11-20DFC6D08040
+ahk_class Photoshop
+ahk_class Premiere Pro
+ahk_class LM_Wnd
+ahk_class AE_CApplication_24.5
+ahk_class AE_CApplication_24.4
+ahk_class AE_CApplication_24.3
+ahk_class AE_CApplication_24.7
+ahk_class AE_CApplication_24.6
+ahk_class AE_CApplication_24.8
+ahk_class AE_CApplication_25.0
+ahk_class AE_CApplication_25.1
+ahk_class AE_CApplication_25.2
+ahk_class AE_CApplication_25.3
+ahk_class AE_CApplication_25.4
+ahk_class AE_CApplication_25.5
+ahk_class AE_CApplication_25.6
+ahk_class AE_CApplication_25.7
+ahk_class Adobe Animate 2024
+ahk_class GHOST_WindowClass
