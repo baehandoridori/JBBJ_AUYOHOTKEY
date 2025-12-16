@@ -83,6 +83,26 @@ global processAliases := {}      ; alias.ini에서 key=value를 읽어와 저장
 ; BS_PUSHLIKE(=0x1000) : 버튼을 "눌림 상태"로 표현할 수 있는 AHK 스타일
 BS_PUSHLIKE := 0x1000
 
+; =================================================================================================
+; [ 경로 관련 전역 변수 - settings.ini에서 로드됨 ]
+; =================================================================================================
+global g_RootDir := ""           ; 스크립트 루트 폴더 (소스, 유틸, 게임 등의 부모)
+global g_SettingsDir := ""       ; 설정 폴더 경로
+global g_UtilsDir := ""          ; 유틸 폴더 경로
+global g_GamesDir := ""          ; 게임 폴더 경로
+global g_LibDir := ""            ; 라이브러리 폴더 경로
+
+; settings.ini에서 읽어올 외부 경로들
+global g_JBBJLibrary := ""       ; JBBJ 자료실 경로
+global g_InstallFiles := ""      ; 설치 파일 경로
+global g_FileCommentSystem := "" ; 파일 주석 시스템 경로
+global g_SVGConverter := ""      ; SVG 변환기 경로
+global g_AHKv2Path := ""         ; AutoHotkey v2 경로
+global g_UserGuideURL := ""      ; 사용설명서 URL
+
+; 경로 초기화
+InitializePaths()
+
 
 
 ; =================================================================================================
@@ -311,9 +331,9 @@ FakeLoadingDriveCheck()
 ; [추가] 구글 드라이브 로딩 + 파일 존재 체크 (3~6초 랜덤)
 ; --------------------------------------------------------------------------
 FakeLoadingDriveCheck() {
-    global  ; 기존 전역 변수 영향 최소화
-    aliasFile := "G:\공유 드라이브\개인작업일지 모음\개인작업일지_배한솔\02_업무\프로젝트\07_오토핫키 한솔프로젝트\new\alias.ini"
-    classFile := "G:\공유 드라이브\개인작업일지 모음\개인작업일지_배한솔\02_업무\프로젝트\07_오토핫키 한솔프로젝트\new\program_classes.txt"
+    global g_SettingsDir
+    aliasFile := g_SettingsDir . "\alias.ini"
+    classFile := g_SettingsDir . "\program_classes.txt"
 
     Random, randomDelay, 3000, 6000
     startTick := A_TickCount
@@ -374,11 +394,12 @@ LoadProgramClasses()
 
 ; 체크 상태 초기 반영(파일공유_JBBJ 스크립트 실행 등)
 if (FileShareChecked = 1) {
-    Run, "C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe" "G:\공유 드라이브\개인작업일지 모음\개인작업일지_배한솔\02_업무\프로젝트\07_오토핫키 한솔프로젝트\new\UIA-v2-main\경로공유_UIA최종_수정1.ahk",, fileSharePID
+    fileShareScript := A_ScriptDir . "\경로공유_UIA최종_수정1.ahk"
+    Run, "%g_AHKv2Path%" "%fileShareScript%",, fileSharePID
 }
 
 if (FilecommentChecked = 1) {
-    Run, "G:\공유 드라이브\JBBJ 자료실\MOHO universal\JBBJ작업도우미\주석시스템\JBBJ_FileCommnetSystem\파일_주석_시스템.ahk",, FilecommentPID
+    Run, "%g_FileCommentSystem%",, FilecommentPID
 }
 
 ; =============================================================================
@@ -400,14 +421,15 @@ return
 
 ToggleFileShare:
 {
-    global FileShareChecked, fileSharePID
+    global FileShareChecked, fileSharePID, g_AHKv2Path
     ; "FileShareChecked" 변수를 ! 연산(토글)
     FileShareChecked := !FileShareChecked
-    
+
     if (FileShareChecked) {
         GuiControl, +Background00FF00, BtnFileShare
         GuiControl,, BtnFileShare, ON 파일공유
-        Run, "C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe" "G:\공유 드라이브\개인작업일지 모음\개인작업일지_배한솔\02_업무\프로젝트\07_오토핫키 한솔프로젝트\new\UIA-v2-main\경로공유_UIA최종_수정1.ahk",, fileSharePID
+        fileShareScript := A_ScriptDir . "\경로공유_UIA최종_수정1.ahk"
+        Run, "%g_AHKv2Path%" "%fileShareScript%",, fileSharePID
     } else {
         GuiControl, +BackgroundFF0000, BtnFileShare
         GuiControl,, BtnFileShare, OFF 파일공유
@@ -476,14 +498,14 @@ return
 
 ToggleFilecomment:
 {
-    global FilecommentChecked, FilecommentPID
+    global FilecommentChecked, FilecommentPID, g_FileCommentSystem
     ; "Filecomment" 변수를 ! 연산(토글)
     FilecommentChecked := !FilecommentChecked
-    
+
     if (FilecommentChecked) {
         GuiControl, +Background00FF00, BtnFilecomment
         GuiControl,, BtnFilecomment, ON 파일주석
-        Run, "G:\공유 드라이브\JBBJ 자료실\MOHO universal\JBBJ작업도우미\주석시스템\JBBJ_FileCommnetSystem\파일_주석_시스템.ahk",, FilecommentPID
+        Run, "%g_FileCommentSystem%",, FilecommentPID
     } else {
         GuiControl, +BackgroundFF0000, BtnFilecomment
         GuiControl,, BtnFilecomment, OFF 파일주석
@@ -513,33 +535,33 @@ ShowMainGUI:
 return
 
 LaunchVerupdate:
-    ; 버전 업데이트 실행
-    Run, G:\공유 드라이브\개인작업일지 모음\개인작업일지_배한솔\02_업무\프로젝트\07_오토핫키 한솔프로젝트\new\JBBJ_작업도우미_버전업데이트.ahk
+    ; 버전 업데이트 실행 (현재 미사용 - 백업에 있음)
+    MsgBox, 48, 알림, 버전 업데이트 기능은 현재 준비 중입니다.
 Return
 
 playnumbergame:
-    ;숫자게임 실행
-    Run, G:\공유 드라이브\개인작업일지 모음\개인작업일지_배한솔\02_업무\프로젝트\07_오토핫키 한솔프로젝트\new\JBBJ_게임\숫자게임.ahk
+    ; 숫자게임 실행
+    Run, % g_GamesDir . "\숫자게임.ahk"
 Return
 
 Anonymous_praise:
     ; 익명 칭찬 스크립트 실행
-    Run, G:\공유 드라이브\개인작업일지 모음\개인작업일지_배한솔\02_업무\프로젝트\07_오토핫키 한솔프로젝트\new\익명_칭찬합시다.ahk
+    Run, % g_UtilsDir . "\익명_칭찬합시다.ahk"
 return
 
 InitialSetup:
     ; 초기 IME 설정 등 사용자 준비
-    Run, G:\공유 드라이브\개인작업일지 모음\개인작업일지_배한솔\02_업무\프로젝트\07_오토핫키 한솔프로젝트\new\UIA-v2-main\first_setup.ahk
+    Run, % g_UtilsDir . "\first_setup.ahk"
 return
 
-Setuphelp: 
-    ;JBBJ 자료실 설치도우미 실행
-    Run, G:\공유 드라이브\개인작업일지 모음\개인작업일지_배한솔\02_업무\프로젝트\07_오토핫키 한솔프로젝트\new\JBBJ_설치도우미_1_4.ahk
+Setuphelp:
+    ; JBBJ 자료실 설치도우미 실행
+    Run, % A_ScriptDir . "\JBBJ_설치도우미_1_4.ahk"
 Return
 
 OpenUserGuide:
     ; 사용설명서 링크(슬랙 캔버스) 열기
-    Run, https://studio-jbbj.slack.com/docs/T03HKE9MNCV/F086ZGRSBB4
+    Run, % g_UserGuideURL
 return
 
 ShowSupportedPrograms:
@@ -549,42 +571,46 @@ return
 
 Cutnumberinsert:
     ; 컷넘버입력기 실행
-    Run,  G:\공유 드라이브\개인작업일지 모음\개인작업일지_배한솔\02_업무\프로젝트\07_오토핫키 한솔프로젝트\new\컷넘버입력기.ahk
+    Run, % g_UtilsDir . "\컷넘버입력기.ahk"
 Return
 
 LaunchColorPicker:
     ; 컬러픽커 스크립트 실행
-    Run, G:\공유 드라이브\개인작업일지 모음\개인작업일지_배한솔\02_업무\프로젝트\07_오토핫키 한솔프로젝트\new\마우스컬러_V1_4.ahk
+    Run, % g_UtilsDir . "\마우스컬러_V1_4.ahk"
 return
 
 Menuchcun:
     ; 저녁메뉴 추천 스크립트 실행
-    run, G:\공유 드라이브\개인작업일지 모음\개인작업일지_배한솔\02_업무\프로젝트\07_오토핫키 한솔프로젝트\new\저녁메뉴추천.ahk
+    Run, % g_UtilsDir . "\저녁메뉴추천.ahk"
 Return
 
 LaunchSVGConverter:
     ; SVG 변환기 실행
-    Run, G:\공유 드라이브\개인작업일지 모음\개인작업일지_배한솔\02_업무\프로젝트\05_svg\svg변환기\SVG_변환기_JBBJ.ahk
+    if (g_SVGConverter != "" && FileExist(g_SVGConverter)) {
+        Run, % g_SVGConverter
+    } else {
+        MsgBox, 48, 알림, SVG 변환기 경로가 설정되지 않았거나 파일이 없습니다.`n설정/settings.ini 파일을 확인해주세요.
+    }
 return
 
 PlaySnakeGame:
     ; 스네이크 게임 실행
-    Run, G:\공유 드라이브\개인작업일지 모음\개인작업일지_배한솔\02_업무\프로젝트\07_오토핫키 한솔프로젝트\new\JBBJ_게임\스네이크게임.ahk
+    Run, % g_GamesDir . "\스네이크게임.ahk"
 return
 
 ShowFortune:
     ; 오늘의 운세 보기
-    Run, G:\공유 드라이브\개인작업일지 모음\개인작업일지_배한솔\02_업무\프로젝트\07_오토핫키 한솔프로젝트\new\오늘의운세.ahk
+    Run, % g_UtilsDir . "\오늘의운세.ahk"
 return
 
 ShowFeedbackWindow:
     ; 피드백 창 실행
-    Run, G:\공유 드라이브\개인작업일지 모음\개인작업일지_배한솔\02_업무\프로젝트\07_오토핫키 한솔프로젝트\new\피드백.ahk
+    Run, % g_UtilsDir . "\피드백.ahk"
 return
 
 LaunchDebugMode:
     ; 디버그 모드 스크립트 실행
-    Run, G:\공유 드라이브\개인작업일지 모음\개인작업일지_배한솔\02_업무\프로젝트\07_오토핫키 한솔프로젝트\new\디버그.ahk
+    Run, % g_UtilsDir . "\디버그.ahk"
 return
 
 ReloadDriveFiles:
@@ -928,11 +954,47 @@ FormatSeconds(sec) {
     return Format("{:02}:{:02}:{:02}", h, m, s)
 }
 
+; =================================================================================================
+; [ 경로 초기화 함수 ]
+; =================================================================================================
+InitializePaths() {
+    global g_RootDir, g_SettingsDir, g_UtilsDir, g_GamesDir, g_LibDir
+    global g_JBBJLibrary, g_InstallFiles, g_FileCommentSystem, g_SVGConverter
+    global g_AHKv2Path, g_UserGuideURL
+
+    ; 스크립트가 소스 폴더에 있으므로, 부모 폴더가 루트
+    g_RootDir := A_ScriptDir . "\.."
+    g_SettingsDir := g_RootDir . "\설정"
+    g_UtilsDir := g_RootDir . "\유틸"
+    g_GamesDir := g_RootDir . "\게임"
+    g_LibDir := g_RootDir . "\라이브러리"
+
+    ; settings.ini 파일 읽기
+    settingsFile := g_SettingsDir . "\settings.ini"
+
+    if FileExist(settingsFile) {
+        IniRead, g_JBBJLibrary, %settingsFile%, 경로, 자료실
+        IniRead, g_InstallFiles, %settingsFile%, 경로, 설치파일
+        IniRead, g_FileCommentSystem, %settingsFile%, 경로, 파일주석시스템
+        IniRead, g_SVGConverter, %settingsFile%, 경로, SVG변환기
+        IniRead, g_AHKv2Path, %settingsFile%, AutoHotkey, AHKv2
+        IniRead, g_UserGuideURL, %settingsFile%, 기타, 사용설명서URL
+    } else {
+        ; 기본값 사용 (settings.ini 없을 경우)
+        g_JBBJLibrary := "G:\공유 드라이브\JBBJ 자료실"
+        g_InstallFiles := g_JBBJLibrary . "\PC 설치 자료들"
+        g_FileCommentSystem := g_JBBJLibrary . "\MOHO universal\JBBJ작업도우미\주석시스템\JBBJ_FileCommnetSystem\파일_주석_시스템.ahk"
+        g_SVGConverter := ""
+        g_AHKv2Path := "C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe"
+        g_UserGuideURL := "https://studio-jbbj.slack.com/docs/T03HKE9MNCV/F086ZGRSBB4"
+    }
+}
+
 ; ==================== 위치변경==============================
 LoadAliases() {
-    global processAliases
+    global processAliases, g_SettingsDir
 
-    aliasFile := "G:\공유 드라이브\개인작업일지 모음\개인작업일지_배한솔\02_업무\프로젝트\07_오토핫키 한솔프로젝트\new\alias.ini"
+    aliasFile := g_SettingsDir . "\alias.ini"
     if !FileExist(aliasFile) {
         MsgBox, 48, 알림, alias.ini 파일이 없습니다. 기본 alias만 사용합니다.
         processAliases["chrome"]    := "크롬"
@@ -976,8 +1038,9 @@ LoadAliases() {
 }
 
 LoadProgramClasses() {
-    global programClassList ; 자동한영전환 프로그램 리스트 경로로
-    Loop, Read, G:\공유 드라이브\개인작업일지 모음\개인작업일지_배한솔\02_업무\프로젝트\07_오토핫키 한솔프로젝트\new\program_classes.txt
+    global programClassList, g_SettingsDir
+    classFile := g_SettingsDir . "\program_classes.txt"
+    Loop, Read, %classFile%
     {
         if (A_LoopReadLine != "")
             programClassList.Push(A_LoopReadLine)
@@ -1145,56 +1208,4 @@ return
     Clipboard := ClipSaved
 }
 return
-; 3. COM 인터페이스를 사용한 개선된 버전 (선택사항)
-; 더 안정적인 클립보드 작업을 원한다면, 위의 ^CapsLock:: 핫키 부분을 다음으로 교체할 수 있습니다:
-; autohotkey#IfWinActive ahk_class CabinetWClass
-^CapsLock::
-{
-    ; 현재 선택된 파일 경로 가져오기
-    ClipSaved := ClipboardAll
-    Clipboard := ""
-    Send, ^c
-    ClipWait, 0.5
-    
-    if !ErrorLevel
-    {
-        selectedFile := Clipboard
-        selectedFile := Trim(selectedFile)
-        
-        if FileExist(selectedFile)
-        {
-            ; 파일명만 추출
-            SplitPath, selectedFile, fileName, fileDir
-            
-            ; 임시 폴더에 바로가기 생성
-            tempDir := A_Temp . "\ShortcutClipboard"
-            FileCreateDir, %tempDir%
-            shortcutPath := tempDir . "\" . fileName . " - 바로 가기.lnk"
-            
-            ; 기존 바로가기 삭제
-            FileDelete, %shortcutPath%
-            
-            ; 새 바로가기 생성
-            FileCreateShortcut, %selectedFile%, %shortcutPath%
-            
-            ; COM을 사용한 클립보드 작업
-            shell := ComObjCreate("Shell.Application")
-            folder := shell.Namespace(tempDir)
-            item := folder.ParseName(fileName . " - 바로 가기.lnk")
-            item.InvokeVerb("cut")
-            
-            ToolTip, 바로가기가 클립보드에 복사되었습니다
-            SetTimer, RemoveToolTip, -1500
-        }
-        else
-        {
-            MsgBox, 48, 오류, 선택한 파일을 찾을 수 없습니다.
-        }
-    }
-    else
-    {
-        MsgBox, 48, 오류, 파일을 선택한 후 사용해주세요.
-    }
-}
-return
-#IfWinActive
+; (삭제됨: 중복된 ^CapsLock 핫키 - 위의 #IfWinActive 버전만 사용)
