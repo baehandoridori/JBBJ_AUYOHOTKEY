@@ -1110,8 +1110,9 @@ ToggleTrackingTime:
 return
 
 ; --------------------------------------------------------------------------
-; [바로가기 클립보드 생성 - Ctrl+CapsLock]
+; [바로가기 클립보드 생성 - Ctrl+CapsLock] - 현재 미사용 (주석처리)
 ; --------------------------------------------------------------------------
+/*
 #IfWinActive ahk_class CabinetWClass
 ^CapsLock::
 {
@@ -1119,35 +1120,35 @@ return
     Clipboard := ""
     Send, ^c
     ClipWait, 0.5
-    
+
     if (Clipboard != "")
     {
         selectedFile := Trim(Clipboard)
-        
+
         if FileExist(selectedFile)
         {
             ; 파일명 추출
             SplitPath, selectedFile, fileName
-            
+
             ; 임시 폴더 생성
             tempDir := A_Temp . "\TempShortcuts"
             FileCreateDir, %tempDir%
-            
+
             ; 기존 파일 삭제
             FileDelete, %tempDir%\*.lnk
-            
+
             ; 바로가기 생성
             shortcutPath := tempDir . "\" . fileName . " - 바로 가기.lnk"
             FileCreateShortcut, %selectedFile%, %shortcutPath%
-            
+
             ; Shell COM 객체 사용
             shell := ComObjCreate("Shell.Application")
             folder := shell.Namespace(tempDir)
             item := folder.ParseName(fileName . " - 바로 가기.lnk")
-            
+
             ; 잘라내기 동작 수행
             item.InvokeVerb("cut")
-            
+
             ToolTip, 바로가기가 잘라내기 되었습니다`n원하는 위치에 Ctrl+V로 붙여넣으세요
             SetTimer, RemoveToolTip, -2000
         }
@@ -1155,11 +1156,13 @@ return
 }
 return
 #IfWinActive
+*/
 
 
 ; --------------------------------------------------------------------------
-; [바로가기 원본 경로 열기 - Alt+i]
+; [바로가기 원본 경로 열기 - Alt+i] - 현재 미사용 (주석처리)
 ; --------------------------------------------------------------------------
+/*
 !i::
 {
     ; 현재 선택된 파일이 바로가기(.lnk)인지 확인
@@ -1167,18 +1170,18 @@ return
     Clipboard := ""
     Send, ^c
     ClipWait, 0.5
-    
+
     if !ErrorLevel
     {
         selectedFile := Clipboard
         selectedFile := Trim(selectedFile)
-        
+
         ; .lnk 파일인지 확인
         if (SubStr(selectedFile, -3) = ".lnk" && FileExist(selectedFile))
         {
             ; 바로가기의 대상 경로 가져오기
             FileGetShortcut, %selectedFile%, targetPath
-            
+
             if (targetPath != "")
             {
                 ; 파일인 경우 해당 폴더를, 폴더인 경우 그대로 열기
@@ -1204,8 +1207,9 @@ return
             MsgBox, 48, 알림, 선택한 파일이 바로가기(.lnk)가 아닙니다.
         }
     }
-    
+
     Clipboard := ClipSaved
 }
 return
+*/
 ; (삭제됨: 중복된 ^CapsLock 핫키 - 위의 #IfWinActive 버전만 사용)
