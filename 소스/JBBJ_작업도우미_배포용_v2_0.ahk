@@ -980,23 +980,24 @@ return
         return
     }
 
-    ; 1. 원본 경로 텍스트 붙여넣기
+    ; 클립보드 백업
     savedClip := ClipboardAll
+
+    ; 1. 하이퍼링크 다이얼로그 먼저 열기 (Ctrl+Shift+U)
+    Send, ^+u
+    Sleep, 300
+
+    ; 2. 텍스트 필드에 원본 경로 붙여넣기
     Clipboard := g_LastOriginalPath
     ClipWait, 1
     Send, ^v
     Sleep, 100
 
-    ; 2. 방금 붙여넣은 텍스트 전체 선택 (Shift+Home으로 줄 처음까지 선택)
-    pathLen := StrLen(g_LastOriginalPath)
-    Send, +{Home}
-    Sleep, 50
+    ; 3. Tab으로 링크 필드로 이동
+    Send, {Tab}
+    Sleep, 100
 
-    ; 3. Slack 하이퍼링크 단축키 (Ctrl+Shift+U)
-    Send, ^+u
-    Sleep, 200
-
-    ; 4. jbbj:// 링크 붙여넣기
+    ; 4. 링크 필드에 jbbj:// 링크 붙여넣기
     Clipboard := g_LastJbbjLink
     ClipWait, 1
     Send, ^v
@@ -1009,7 +1010,7 @@ return
     Clipboard := savedClip
     savedClip := ""
 
-    ToolTip, ✅ 하이퍼링크 생성 완료
+    ToolTip, 하이퍼링크 생성 완료
     SetTimer, RemoveToolTip, -1500
 return
 
