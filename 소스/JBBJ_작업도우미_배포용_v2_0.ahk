@@ -61,6 +61,8 @@ global FileShareChecked := 1     ; 파일공유_JBBJ 토글 (기본 On)
 global FilecommentChecked := 1   ; 파일주석시스템 토글 (기본 On)
 global checkPathToLink := 1      ; 경로→링크 자동변환 토글 (기본 On)
 global isConvertingClipboard := false  ; 클립보드 변환 중 플래그 (무한루프 방지)
+global g_LastOriginalPath := ""  ; Slack 하이퍼링크용 원본 경로
+global g_LastJbbjLink := ""      ; Slack 하이퍼링크용 jbbj:// 링크
 
 
 ; --- 추가: 툴팁용 전역 핸들 변수 (각 버튼에 대한 hWnd) ---
@@ -961,7 +963,57 @@ return
 
 #IfWinNotActive  ; 컨텍스트 설정 해제
 
+; --------------------------------------------------------------------------
+; [Slack 하이퍼링크 붙여넣기] (Ctrl+Shift+V) - Slack 창에서만 동작
+; G:\ 경로 복사 후 Slack에서 Ctrl+Shift+V 누르면 자동으로 하이퍼링크 생성
+; --------------------------------------------------------------------------
 
+#IfWinActive ahk_exe slack.exe
+
+^+v::
+    global g_LastOriginalPath, g_LastJbbjLink
+
+    ; 저장된 경로가 없으면 일반 붙여넣기
+    if (g_LastOriginalPath = "" || g_LastJbbjLink = "")
+    {
+        Send, ^v
+        return
+    }
+
+    ; 1. 원본 경로 텍스트 붙여넣기
+    savedClip := ClipboardAll
+    Clipboard := g_LastOriginalPath
+    ClipWait, 1
+    Send, ^v
+    Sleep, 100
+
+    ; 2. 방금 붙여넣은 텍스트 전체 선택 (Shift+Home으로 줄 처음까지 선택)
+    pathLen := StrLen(g_LastOriginalPath)
+    Send, +{Home}
+    Sleep, 50
+
+    ; 3. Slack 하이퍼링크 단축키 (Ctrl+Shift+U)
+    Send, ^+u
+    Sleep, 200
+
+    ; 4. jbbj:// 링크 붙여넣기
+    Clipboard := g_LastJbbjLink
+    ClipWait, 1
+    Send, ^v
+    Sleep, 50
+
+    ; 5. 엔터로 확인
+    Send, {Enter}
+
+    ; 클립보드 복원
+    Clipboard := savedClip
+    savedClip := ""
+
+    ToolTip, ✅ 하이퍼링크 생성 완료
+    SetTimer, RemoveToolTip, -1500
+return
+
+#IfWinActive  ; 컨텍스트 해제
 
 
 ; =============================================================================
@@ -1176,7 +1228,7 @@ CheckAndRegisterProtocol() {
 ; [클립보드 경로 → jbbj:// 링크 자동 변환]
 ; --------------------------------------------------------------------------
 ClipboardPathConverter(clipType) {
-    global checkPathToLink, isConvertingClipboard
+    global checkPathToLink, isConvertingClipboard, g_LastOriginalPath, g_LastJbbjLink
 
     ; 비활성화 상태면 스킵
     if (checkPathToLink != 1)
@@ -1208,24 +1260,20 @@ ClipboardPathConverter(clipType) {
         cleanPath := RegExReplace(cleanPath, "[\r\n]+$", "")
         cleanPath := RegExReplace(cleanPath, "^[\r\n]+", "")
 
-        ; 실제 경로가 존재하는지 확인 (선택사항 - 없어도 변환)
-        ; if !FileExist(cleanPath)
-        ;     return
-
         ; 백슬래시를 슬래시로 변환
         urlPath := StrReplace(cleanPath, "\", "/")
 
-        ; jbbj:// 링크 생성 (한글은 인코딩 없이 그대로)
+        ; jbbj:// 링크 생성
         jbbjLink := "jbbj://open/" . urlPath
 
-        ; 클립보드 변환
-        isConvertingClipboard := true
-        Clipboard := jbbjLink
-        isConvertingClipboard := false
+        ; 전역 변수에 저장 (Slack 하이퍼링크용)
+        g_LastOriginalPath := cleanPath
+        g_LastJbbjLink := jbbjLink
 
-        ; 짧은 툴팁으로 변환 알림
-        ToolTip, 📎 경로가 링크로 변환됨`nSlack에 붙여넣기 하세요
-        SetTimer, RemoveToolTip, -2000
+        ; 클립보드는 원본 경로 유지 (변환하지 않음)
+        ; 짧은 툴팁으로 안내
+        ToolTip, 📎 경로 감지됨`nSlack: Ctrl+Shift+V로 하이퍼링크 붙여넣기
+        SetTimer, RemoveToolTip, -2500
     }
 }
 
