@@ -614,6 +614,49 @@ SafeSendText(text) {
     prevClip := ""              ; 메모리 해제
 }
 
+; ============================================================================
+; 경로 하이퍼링크 삽입 함수 (jbbj:// 프로토콜)
+; Slack의 하이퍼링크 기능을 사용하여 클릭 가능한 경로 링크 생성
+; ============================================================================
+InsertPathHyperlink(filePath) {
+    ; jbbj:// 링크 생성
+    urlPath := StrReplace(filePath, "\", "/")
+    jbbjLink := "jbbj://open/" . urlPath
+
+    ; 클립보드 백업
+    prevClip := ClipboardAll()
+
+    ; 1. Slack 하이퍼링크 다이얼로그 열기 (Ctrl+Shift+U)
+    Send "^+u"
+    Sleep 300
+
+    ; 2. 텍스트 필드에 경로 붙여넣기 (폴더 이모지 + 경로)
+    displayText := "📁 " . filePath
+    A_Clipboard := displayText
+    Sleep 100
+    ClipWait(2, 0)
+    Send "^v"
+    Sleep 100
+
+    ; 3. Tab으로 링크 필드로 이동
+    Send "{Tab}"
+    Sleep 100
+
+    ; 4. 링크 필드에 jbbj:// 링크 붙여넣기
+    A_Clipboard := jbbjLink
+    Sleep 100
+    ClipWait(2, 0)
+    Send "^v"
+    Sleep 100
+
+    ; 5. Enter로 확인
+    Send "{Enter}"
+    Sleep 100
+
+    ; 클립보드 복원
+    A_Clipboard := prevClip
+    prevClip := ""
+}
 
 ; ============================================================================
 ; UIA를 활용한 Slack 메시지 전송 함수
@@ -693,12 +736,17 @@ if (InStr(userName, "사코팍-")) {
 Sleep 200
 Send "+{Enter}"  ; 줄바꿈
 Sleep 200
-        
-        
+
+        ; ★ 경로 하이퍼링크 추가 (jbbj:// 프로토콜)
+        InsertPathHyperlink(savedFileDir)
+        Sleep 200
+        Send "+{Enter}"  ; 줄바꿈
+        Sleep 200
+
         ; 코드 블록 시작 (Ctrl+Shift+9)
         Send "^+9"
         Sleep 100
-        
+
         ; 공통 경로 출력
         SafeSendText(savedFileDir)
         Sleep 200
