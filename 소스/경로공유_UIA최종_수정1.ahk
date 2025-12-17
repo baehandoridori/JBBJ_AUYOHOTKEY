@@ -630,9 +630,8 @@ InsertPathHyperlink(filePath) {
     Send "^+u"
     Sleep 300
 
-    ; 2. 텍스트 필드에 경로 붙여넣기 (폴더 이모지 + 경로)
-    displayText := "📁 " . filePath
-    A_Clipboard := displayText
+    ; 2. 텍스트 필드에 경로만 붙여넣기 (G:\... 형식)
+    A_Clipboard := filePath
     Sleep 100
     ClipWait(2, 0)
     Send "^v"
