@@ -111,6 +111,9 @@ CheckAndRegisterProtocol()
 ; 클립보드 변환 핸들러 등록 (G:\ 경로 → jbbj:// 링크)
 OnClipboardChange("ClipboardPathConverter")
 
+; 종료 시 관련 스크립트도 함께 종료되도록 등록
+OnExit("CleanupOnExit")
+
 ; =================================================================================================
 ; [트레이 아이콘 설정] - 메인 스크립트 로직 유지
 ; =================================================================================================
@@ -767,8 +770,82 @@ ShowSupportedProgramsList() {
 ; [스크립트 종료 함수]
 ; --------------------------------------------------------------------------
 ExitScript:
+    ; 작업마법사 종료 시 관련 스크립트들도 함께 종료
+    CloseRelatedScripts()
     ExitApp
 return
+
+; --------------------------------------------------------------------------
+; [OnExit 콜백 - 종료 시 정리 작업]
+; --------------------------------------------------------------------------
+CleanupOnExit(ExitReason, ExitCode) {
+    ; Reload나 정상 종료 시 관련 스크립트 닫기
+    CloseRelatedScripts()
+    return 0  ; 종료 허용
+}
+
+; --------------------------------------------------------------------------
+; [관련 스크립트 종료 함수]
+; --------------------------------------------------------------------------
+CloseRelatedScripts() {
+    global fileSharePID, FilecommentPID
+
+    ; 종료할 스크립트 목록 (작업마법사가 실행한 것들)
+    scriptsToClose := ["경로공유_UIA최종_수정1.ahk"
+                     , "파일_주석_시스템.ahk"
+                     , "숫자게임.ahk"
+                     , "스네이크게임.ahk"
+                     , "숫자야구게임"
+                     , "익명_칭찬합시다.ahk"
+                     , "first_setup.ahk"
+                     , "컷넘버입력기.ahk"
+                     , "마우스컬러"
+                     , "저녁메뉴추천.ahk"
+                     , "오늘의운세.ahk"
+                     , "피드백.ahk"
+                     , "디버그.ahk"
+                     , "jbbj_protocol_handler.ahk"]
+
+    ; 숨겨진 창도 검색
+    DetectHiddenWindows, On
+
+    ; 모든 AutoHotkey 창 검색
+    WinGet, AHKList, List, ahk_class AutoHotkey
+
+    Loop %AHKList%
+    {
+        thisHwnd := AHKList%A_Index%
+        WinGetTitle, title, ahk_id %thisHwnd%
+
+        ; 자기 자신은 건너뛰기
+        if (title = A_ScriptFullPath)
+            continue
+
+        ; 목록에 있는 스크립트면 종료
+        for idx, scriptName in scriptsToClose
+        {
+            if (InStr(title, scriptName))
+            {
+                WinClose, ahk_id %thisHwnd%
+                Sleep, 50
+                ; 안 닫히면 강제 종료
+                if WinExist("ahk_id " . thisHwnd)
+                    WinKill, ahk_id %thisHwnd%
+                break
+            }
+        }
+    }
+
+    DetectHiddenWindows, Off
+
+    ; PID로 추적 중인 프로세스도 종료
+    if (fileSharePID > 0) {
+        Process, Close, %fileSharePID%
+    }
+    if (FilecommentPID > 0) {
+        Process, Close, %FilecommentPID%
+    }
+}
 
 ; --------------------------------------------------------------------------
 ; [GUI 닫기 처리]
