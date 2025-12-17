@@ -348,8 +348,7 @@ FakeLoadingDriveCheck()
 ; [추가] 구글 드라이브 로딩 + 파일 존재 체크 (3~6초 랜덤)
 ; --------------------------------------------------------------------------
 FakeLoadingDriveCheck() {
-    global g_SettingsDir
-    static PB, PercentText  ; GUI 컨트롤 변수는 static 선언 필요
+    global g_SettingsDir, LoadingPB, LoadingPercentText  ; GUI 컨트롤 변수는 global 선언 필요
     aliasFile := g_SettingsDir . "\alias.ini"
     classFile := g_SettingsDir . "\program_classes.txt"
 
@@ -360,8 +359,8 @@ FakeLoadingDriveCheck() {
     Gui, 99: -Caption +ToolWindow +AlwaysOnTop
     Gui, 99: Font, s9, Arial
     Gui, 99: Add, Text, x10 y10 w180 h20, 구글 드라이브 로딩중...
-    Gui, 99: Add, Progress, x10 y35 w180 h15 vPB Range0-100
-    Gui, 99: Add, Text, x10 y55 w180 h20 vPercentText Center, 0`%
+    Gui, 99: Add, Progress, x10 y35 w180 h15 vLoadingPB Range0-100
+    Gui, 99: Add, Text, x10 y55 w180 h20 vLoadingPercentText Center, 0`%
     Gui, 99: Show, w200 h80, 로딩중
 
     Loop
@@ -369,18 +368,18 @@ FakeLoadingDriveCheck() {
             elapsed := A_TickCount - startTick
     
             if (FileExist(aliasFile) && FileExist(classFile)) {
-                GuiControl, 99:, PB, 100
-                GuiControl, 99:, PercentText, 100`%
+                GuiControl, 99:, LoadingPB, 100
+                GuiControl, 99:, LoadingPercentText, 100`%
                 Sleep, 300
                 break  ; 로딩 성공 -> 루프 탈출
             }
-    
+
             progress := Floor(elapsed / randomDelay * 100)
             if (progress > 100)
                 progress := 100
-    
-            GuiControl, 99:, PB, %progress%
-            GuiControl, 99:, PercentText, %progress%`%
+
+            GuiControl, 99:, LoadingPB, %progress%
+            GuiControl, 99:, LoadingPercentText, %progress%`%
     
             if (elapsed >= randomDelay) {
                 MsgBox, 262192, 로딩 실패,
@@ -1212,6 +1211,9 @@ ClipboardPathConverter(clipType) {
 
         ; 백슬래시를 슬래시로 변환
         urlPath := StrReplace(cleanPath, "\", "/")
+
+        ; 공백을 %20으로 URL 인코딩
+        urlPath := StrReplace(urlPath, " ", "%20")
 
         ; jbbj:// 링크 생성 (Slack 링크 인식을 위해 <> 로 감쌈)
         jbbjLink := "<jbbj://open/" . urlPath . ">"

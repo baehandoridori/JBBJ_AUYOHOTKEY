@@ -15,8 +15,10 @@ if (fullUrl = "")
     ExitApp
 }
 
-; jbbj://open/ 제거하고 경로 추출
+; <> 및 jbbj://open/ 제거하고 경로 추출
 path := fullUrl
+path := RegExReplace(path, "^<", "")      ; 앞쪽 < 제거
+path := RegExReplace(path, ">$", "")      ; 뒤쪽 > 제거
 path := RegExReplace(path, "^jbbj://open/", "")
 path := RegExReplace(path, "^jbbj://", "")
 
