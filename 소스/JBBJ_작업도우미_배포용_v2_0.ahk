@@ -349,6 +349,7 @@ FakeLoadingDriveCheck()
 ; --------------------------------------------------------------------------
 FakeLoadingDriveCheck() {
     global g_SettingsDir
+    static PB, PercentText  ; GUI 컨트롤 변수는 static 선언 필요
     aliasFile := g_SettingsDir . "\alias.ini"
     classFile := g_SettingsDir . "\program_classes.txt"
 
@@ -1212,8 +1213,8 @@ ClipboardPathConverter(clipType) {
         ; 백슬래시를 슬래시로 변환
         urlPath := StrReplace(cleanPath, "\", "/")
 
-        ; jbbj:// 링크 생성
-        jbbjLink := "jbbj://open/" . urlPath
+        ; jbbj:// 링크 생성 (Slack 링크 인식을 위해 <> 로 감쌈)
+        jbbjLink := "<jbbj://open/" . urlPath . ">"
 
         ; 클립보드 변환
         isConvertingClipboard := true
@@ -1221,8 +1222,8 @@ ClipboardPathConverter(clipType) {
         isConvertingClipboard := false
 
         ; 짧은 툴팁으로 변환 알림
-        ToolTip, 📎 경로가 링크로 변환됨
-        SetTimer, RemoveToolTip, -1500
+        ToolTip, 📎 경로가 링크로 변환됨`nSlack에 붙여넣기 하세요
+        SetTimer, RemoveToolTip, -2000
     }
 }
 
