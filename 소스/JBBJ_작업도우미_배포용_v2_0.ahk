@@ -416,7 +416,10 @@ if (FileShareChecked = 1) {
 }
 
 if (FilecommentChecked = 1) {
-    Run, "%g_FileCommentSystem%",, FilecommentPID
+    if (g_FileCommentSystem != "" && FileExist(g_FileCommentSystem))
+        Run, "%g_FileCommentSystem%",, FilecommentPID
+    else
+        FilecommentChecked := 0  ; 파일 없으면 비활성화
 }
 
 ; =============================================================================
@@ -1212,11 +1215,8 @@ ClipboardPathConverter(clipType) {
         ; 백슬래시를 슬래시로 변환
         urlPath := StrReplace(cleanPath, "\", "/")
 
-        ; 공백을 %20으로 URL 인코딩
-        urlPath := StrReplace(urlPath, " ", "%20")
-
-        ; jbbj:// 링크 생성 (Slack 링크 인식을 위해 <> 로 감쌈)
-        jbbjLink := "<jbbj://open/" . urlPath . ">"
+        ; jbbj:// 링크 생성 (한글은 인코딩 없이 그대로)
+        jbbjLink := "jbbj://open/" . urlPath
 
         ; 클립보드 변환
         isConvertingClipboard := true

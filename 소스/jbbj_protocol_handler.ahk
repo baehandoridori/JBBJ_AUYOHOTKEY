@@ -15,15 +15,10 @@ if (fullUrl = "")
     ExitApp
 }
 
-; <> 및 jbbj://open/ 제거하고 경로 추출
+; jbbj://open/ 제거하고 경로 추출
 path := fullUrl
-path := RegExReplace(path, "^<", "")      ; 앞쪽 < 제거
-path := RegExReplace(path, ">$", "")      ; 뒤쪽 > 제거
 path := RegExReplace(path, "^jbbj://open/", "")
 path := RegExReplace(path, "^jbbj://", "")
-
-; URL 디코딩 (공백 등 처리)
-path := UriDecode(path)
 
 ; 슬래시를 백슬래시로 변환
 path := StrReplace(path, "/", "\")
@@ -53,21 +48,3 @@ else
 }
 
 ExitApp
-
-; --------------------------------------------------------------------------
-; URL 디코딩 함수
-; --------------------------------------------------------------------------
-UriDecode(uri)
-{
-    Loop
-    {
-        if !RegExMatch(uri, "i)(%[0-9A-F]{2})", match)
-            break
-        StringTrimLeft, hex, match, 1
-        Transform, char, Chr, 0x%hex%
-        StringReplace, uri, uri, %match%, %char%, All
-    }
-    ; + 를 공백으로
-    StringReplace, uri, uri, +, %A_Space%, All
-    return uri
-}
