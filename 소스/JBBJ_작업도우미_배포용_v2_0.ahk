@@ -59,10 +59,12 @@ global checkEasyOpen := 1        ; 경로 쉽게열기 토글 (기본 On)
 global checkAlwaysOnTop := 1     ; alwaysOnTop 토글 (기본 On)
 global FileShareChecked := 1     ; 파일공유_JBBJ 토글 (기본 On)
 global FilecommentChecked := 1   ; 파일주석시스템 토글 (기본 On)
+global checkPathToLink := 1      ; 경로→링크 자동변환 토글 (기본 On)
+global isConvertingClipboard := false  ; 클립보드 변환 중 플래그 (무한루프 방지)
 
 
 ; --- 추가: 툴팁용 전역 핸들 변수 (각 버튼에 대한 hWnd) ---
-global HFileShare, HAutoIME, HEasyOpen, HAlwaysOnTop, HFilecomment, HSvg, Hfeedback, HColor, HAp, Hsnake, H2048, Hmenuchcun, Hfortune, Hcutnumber, Hhelp, Hsetup
+global HFileShare, HAutoIME, HEasyOpen, HAlwaysOnTop, HFilecomment, HSvg, Hfeedback, HColor, HAp, Hsnake, H2048, Hmenuchcun, Hfortune, Hcutnumber, Hhelp, Hsetup, HPathToLink
 
 ; --- 타임 트래커(ProgressBar)용 전역 ---
 global totalUsage := 0           ; 전체 누적 사용 시간(초)
@@ -103,7 +105,11 @@ global g_UserGuideURL := ""      ; 사용설명서 URL
 ; 경로 초기화
 InitializePaths()
 
+; jbbj:// 프로토콜 등록 확인 및 자동 등록
+CheckAndRegisterProtocol()
 
+; 클립보드 변환 핸들러 등록 (G:\ 경로 → jbbj:// 링크)
+OnClipboardChange("ClipboardPathConverter")
 
 ; =================================================================================================
 ; [트레이 아이콘 설정] - 메인 스크립트 로직 유지
@@ -209,7 +215,7 @@ Gui, Tab
 ; [★ 추가: "기능 토글"용 버튼(박스형) 그룹박스 및 버튼들 ]
 ; --------------------------------------------------------------------------
 Gui, Font, S10 CDefault norm, Verdana
-Gui, Add, GroupBox, x350 y69 w100 h160 , 기능 토글  ; 새 그룹박스
+Gui, Add, GroupBox, x350 y69 w100 h185 , 기능 토글  ; 새 그룹박스
 Gui, Font, cGreen
 
 Gui, Font, S7, Verdana
@@ -223,6 +229,8 @@ Gui, Add, Button, x360 y135 w80 h22 hwndHEasyOpen vBtnEasyOpen gToggleEasyOpen +
 Gui, Add, Button, x360 y160 w80 h22 hwndHAlwaysOnTop vBtnAlwaysOnTop gToggleAlwaysOnTop +%BS_PUSHLIKE%, AlwaysOnTop
 ; = [EDPS] 버튼
 Gui, Add, Button, x360 y185 w80 h22 hwndHFilecomment vBtnFilecomment gToggleFilecomment +%BS_PUSHLIKE%, 파일주석시스템
+; - [경로→링크] 버튼
+Gui, Add, Button, x360 y210 w80 h22 hwndHPathToLink vBtnPathToLink gTogglePathToLink +%BS_PUSHLIKE%, 경로→링크
 
 
 ; --------------------------------------------------------------------------
@@ -310,6 +318,12 @@ Gui, Submit, NoHide
 
 ; GUI Show 직후에 추가
 OnMessage(0x200, "WM_MOUSEMOVE")  ; 툴팁용 (WM_MOUSEMOVE)
+
+; 경로→링크 버튼 초기 상태 설정 (기본 ON)
+if (checkPathToLink = 1) {
+    GuiControl, +Background00FF00, BtnPathToLink
+    GuiControl,, BtnPathToLink, ON 경로→링크
+}
 
 
 
@@ -525,7 +539,26 @@ ToggleFilecomment:
 }
 return
 
+; --------------------------------------------------------------------------
+; [경로→링크 변환 토글]
+; --------------------------------------------------------------------------
+TogglePathToLink:
+{
+    global checkPathToLink
+    checkPathToLink := !checkPathToLink
 
+    if (checkPathToLink) {
+        GuiControl, +Background00FF00, BtnPathToLink
+        GuiControl,, BtnPathToLink, ON 경로→링크
+        ToolTip, 경로→링크 변환 활성화`nG:\경로 복사 시 jbbj:// 링크로 변환됩니다
+    } else {
+        GuiControl, +BackgroundFF0000, BtnPathToLink
+        GuiControl,, BtnPathToLink, OFF 경로→링크
+        ToolTip, 경로→링크 변환 비활성화
+    }
+    SetTimer, RemoveToolTip, -2000
+}
+return
 
 ; --------------------------------------------------------------------------
 ; [ 메인 스크립트 서브루틴들 ]
@@ -766,17 +799,34 @@ CapsLock::
         if !ErrorLevel
         {
             folderPath := Clipboard
+
+            ; ─────────────────────────────────────────────
+            ; [경로 정제 개선] Slack 등에서 복사 시 불필요한 문자 제거
+            ; ─────────────────────────────────────────────
+            ; 1. 앞뒤 공백/줄바꿈 제거
             folderPath := Trim(folderPath)
-            folderPath := RegExReplace(folderPath, "`r`n$")
-            folderPath := RegExReplace(folderPath, "`n$")
+            folderPath := RegExReplace(folderPath, "^[\s\r\n]+")
+            folderPath := RegExReplace(folderPath, "[\s\r\n]+$")
+
+            ; 2. G:\ ~ Z:\ 드라이브 경로 추출 (Slack 타임스탬프 등 제거)
+            if RegExMatch(folderPath, "i)([G-Z]:\\[^<>:""\|\?\*\r\n]+)", extractedPath)
+                folderPath := extractedPath1
+
+            ; 3. 경로 끝의 불필요한 문자 제거 (마침표, 쉼표 등)
+            folderPath := RegExReplace(folderPath, "[.,;:\s]+$")
 
             if FileExist(folderPath)
             {
-                Run, explorer %folderPath%
+                ; 파일인지 폴더인지 확인
+                FileGetAttrib, attr, %folderPath%
+                if InStr(attr, "D")
+                    Run, explorer "%folderPath%"
+                else
+                    Run, explorer /select`,"%folderPath%"
             }
             else
             {
-                MsgBox, 경로가 유효하지 않습니다: [%folderPath%]
+                MsgBox, 48, 경로 열기 실패, 경로를 찾을 수 없습니다:`n`n%folderPath%
             }
         }
         Clipboard := ClipSaved
@@ -987,6 +1037,115 @@ InitializePaths() {
         g_SVGConverter := ""
         g_AHKv2Path := "C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe"
         g_UserGuideURL := "https://studio-jbbj.slack.com/docs/T03HKE9MNCV/F086ZGRSBB4"
+    }
+}
+
+; --------------------------------------------------------------------------
+; [jbbj:// 프로토콜 등록 확인 및 자동 등록]
+; --------------------------------------------------------------------------
+CheckAndRegisterProtocol() {
+    global g_RootDir
+
+    ; 레지스트리에서 jbbj 프로토콜 확인
+    RegRead, existingValue, HKEY_CLASSES_ROOT, jbbj, URL Protocol
+
+    ; 이미 등록되어 있으면 스킵
+    if (!ErrorLevel) {
+        return
+    }
+
+    ; 프로토콜 핸들러 경로
+    handlerPath := g_RootDir . "\소스\jbbj_protocol_handler.ahk"
+
+    ; 핸들러 파일 존재 확인
+    if !FileExist(handlerPath) {
+        return  ; 핸들러 없으면 조용히 스킵
+    }
+
+    ; AutoHotkey 실행 파일 경로 찾기
+    ahkExePath := A_AhkPath
+    if (ahkExePath = "") {
+        ahkExePath := "C:\Program Files\AutoHotkey\AutoHotkey.exe"
+    }
+
+    ; 레지스트리 등록 시도 (관리자 권한 필요할 수 있음)
+    try {
+        ; HKEY_CLASSES_ROOT\jbbj 키 생성
+        RegWrite, REG_SZ, HKEY_CLASSES_ROOT, jbbj,, URL:JBBJ Protocol
+        RegWrite, REG_SZ, HKEY_CLASSES_ROOT, jbbj, URL Protocol,
+
+        ; shell\open\command 키 생성
+        commandValue := """" . ahkExePath . """ """ . handlerPath . """ ""%1"""
+        RegWrite, REG_SZ, HKEY_CLASSES_ROOT, jbbj\shell\open\command,, %commandValue%
+
+        ; 성공 시 알림 (처음 등록 시에만)
+        ; TrayTip, JBBJ 작업도우미, jbbj:// 프로토콜이 등록되었습니다., 2, 1
+    } catch {
+        ; 관리자 권한이 없으면 HKEY_CURRENT_USER에 등록 시도
+        try {
+            RegWrite, REG_SZ, HKEY_CURRENT_USER\Software\Classes, jbbj,, URL:JBBJ Protocol
+            RegWrite, REG_SZ, HKEY_CURRENT_USER\Software\Classes, jbbj, URL Protocol,
+
+            commandValue := """" . ahkExePath . """ """ . handlerPath . """ ""%1"""
+            RegWrite, REG_SZ, HKEY_CURRENT_USER\Software\Classes\jbbj\shell\open\command,, %commandValue%
+        }
+    }
+}
+
+; --------------------------------------------------------------------------
+; [클립보드 경로 → jbbj:// 링크 자동 변환]
+; --------------------------------------------------------------------------
+ClipboardPathConverter(clipType) {
+    global checkPathToLink, isConvertingClipboard
+
+    ; 비활성화 상태면 스킵
+    if (checkPathToLink != 1)
+        return
+
+    ; 이미 변환 중이면 스킵 (무한루프 방지)
+    if (isConvertingClipboard)
+        return
+
+    ; 텍스트 클립보드만 처리
+    if (clipType != 1)
+        return
+
+    clipText := Clipboard
+
+    ; 비어있으면 스킵
+    if (clipText = "")
+        return
+
+    ; 이미 jbbj:// 링크면 스킵
+    if (SubStr(clipText, 1, 7) = "jbbj://")
+        return
+
+    ; G:\ ~ Z:\ 드라이브 경로인지 확인 (공유 드라이브 포함)
+    if RegExMatch(clipText, "i)^[G-Z]:\\")
+    {
+        ; 경로 정제 (앞뒤 공백, 줄바꿈 제거)
+        cleanPath := Trim(clipText)
+        cleanPath := RegExReplace(cleanPath, "[\r\n]+$", "")
+        cleanPath := RegExReplace(cleanPath, "^[\r\n]+", "")
+
+        ; 실제 경로가 존재하는지 확인 (선택사항 - 없어도 변환)
+        ; if !FileExist(cleanPath)
+        ;     return
+
+        ; 백슬래시를 슬래시로 변환
+        urlPath := StrReplace(cleanPath, "\", "/")
+
+        ; jbbj:// 링크 생성
+        jbbjLink := "jbbj://open/" . urlPath
+
+        ; 클립보드 변환
+        isConvertingClipboard := true
+        Clipboard := jbbjLink
+        isConvertingClipboard := false
+
+        ; 짧은 툴팁으로 변환 알림
+        ToolTip, 📎 경로가 링크로 변환됨
+        SetTimer, RemoveToolTip, -1500
     }
 }
 
