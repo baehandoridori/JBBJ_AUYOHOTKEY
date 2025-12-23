@@ -601,8 +601,12 @@ Setuphelp:
 Return
 
 OpenUserGuide:
-    ; 사용설명서 링크(슬랙 캔버스) 열기
-    Run, % g_UserGuideURL
+    ; 사용설명서 HTML 파일 열기 (브라우저에서 GitHub 스타일로 표시)
+    userGuideFile := A_ScriptDir . "\..\사용설명서.html"
+    if FileExist(userGuideFile)
+        Run, %userGuideFile%
+    else
+        Run, % g_UserGuideURL  ; HTML 파일 없으면 기존 URL 사용
 return
 
 ShowSupportedPrograms:
