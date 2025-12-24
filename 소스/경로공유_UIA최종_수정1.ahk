@@ -1097,108 +1097,105 @@ CancelUpload(*) {
 }
 
 ; ============================================================================
-; 개선된 파일 첨부 함수 - 불필요한 Alt+Shift+F 로직 제거
+; 개선된 파일 첨부 함수 - 속도 최적화 버전
+; - 파일 첨부 후 업로드 대기 없이 즉시 완료 처리
+; - Sleep 시간 단축으로 빠른 작업 진행
 ; ============================================================================
 AttachFilesImproved() {
     global filePathCount, filePathList, attachFile
     global isUploading, shouldCancelUpload, currentStep, totalSteps
-    
+
     ; 파일 첨부 체크박스가 선택되지 않았으면 리턴
     if (!attachFile) {
         UpdateProgressBar(100, "작업이 완료되었습니다.")
         SetTimer CloseProgressBar, -1500
         return
     }
-    
+
     ; 첨부할 파일의 총 개수
     totalFiles := filePathCount
-    
+
     ; 각 파일마다 첨부 진행
     for index, filePath in filePathList {
-        ; 취소 플래그 확인 - 더 빈번히 검사
+        ; 취소 플래그 확인
         if (shouldCancelUpload) {
             break
         }
-        
+
         ; 현재 파일 기준 진행률 계산
         baseProgress := currentStep * 100 / totalSteps
-        fileProgress := (index - 1) * (100 / totalSteps) / totalFiles
-        totalProgress := baseProgress + fileProgress
-        
+        fileProgress := (index / totalFiles) * (100 / totalSteps)
+        totalProgress := Round(baseProgress + fileProgress)
+
         ; 파일 첨부 시작 메시지
-        UpdateProgressBar(Round(totalProgress), 
+        UpdateProgressBar(totalProgress,
             "파일 " . index . "/" . totalFiles . " 첨부 중...")
-        
+
         try {
             ; 핫키 방식으로 파일 첨부
-            Send "^o"  ; Ctrl+U 키를 통한 파일 첨부
-            Sleep 800  ; 파일 첨부 대화상자가 뜨기를 충분히 기다림
-            
-            ; 취소 플래그 다시 확인
+            Send "^o"  ; Ctrl+O로 파일 첨부 대화상자 열기
+            Sleep 400  ; 대화상자 열리기 대기 (800 → 400으로 단축)
+
+            ; 취소 플래그 확인
             if (shouldCancelUpload) {
                 break
             }
-            
+
             ; 파일 첨부 대화상자 "열기"가 뜰 때까지 대기
-            if !WinWaitActive("열기",, 5) {
+            if !WinWaitActive("열기",, 3) {
                 ; 대화상자가 나타나지 않으면 오류 처리 및 중단
                 ShowErrorAndStop("파일 첨부 대화상자를 찾을 수 없습니다.")
                 return
             }
-            
-            ; 취소 플래그 다시 확인
+
+            ; 취소 플래그 확인
             if (shouldCancelUpload) {
                 Send "{Escape}"  ; 열기 대화상자 닫기
                 break
             }
-            
+
             ; 파일 경로 입력 - 클립보드 방식 사용
             prevClip := ClipboardAll()
             A_Clipboard := filePath
-            Sleep 100
+            Sleep 50
             ClipWait(2, 0)
             Send "^v"
-            Sleep 500  ; 경로 붙여넣기 후 충분히 대기
-            
-            ; 취소 플래그 다시 확인
+            Sleep 200  ; 경로 붙여넣기 대기 (500 → 200으로 단축)
+
+            ; 취소 플래그 확인
             if (shouldCancelUpload) {
                 Send "{Escape}"  ; 열기 대화상자 닫기
                 break
             }
-            
+
             Send "{Enter}"
-            Sleep 1000  ; 파일 업로드 시작을 위한 충분한 대기 시간
-            
+            Sleep 300  ; 대화상자 닫힘 대기 (1000 → 300으로 단축)
+
             ; 클립보드 복원
             A_Clipboard := prevClip
             prevClip := ""
-            
-            ; 취소 플래그 다시 확인
-            if (shouldCancelUpload) {
-                break
+
+            ; 마지막 파일이 아니면 다음 파일 첨부 전 짧은 대기
+            if (index < totalFiles) {
+                Sleep 400  ; 파일 간 대기 (1000 → 400으로 단축)
             }
-            
-            ; 업로드 대기 시뮬레이션
-            SimulateFileUploadProgress(baseProgress, fileProgress, index, totalFiles)
-            
-            ; 파일 간 추가 대기 시간
-            Sleep 1000
-            
+
         } catch as e {
             ShowErrorAndStop("파일 첨부 중 오류가 발생했습니다: " . e.Message)
             return
         }
     }
-    
+
     ; 모든 파일 첨부 완료 또는 취소됨
+    ; ★ 업로드 완료를 기다리지 않고 즉시 100% 완료 처리
     if (shouldCancelUpload) {
         UpdateProgressBar(100, "작업이 취소되었습니다.")
     } else {
-        UpdateProgressBar(100, "모든 작업이 완료되었습니다!")
+        UpdateProgressBar(100, "파일 첨부 완료! (업로드는 백그라운드에서 진행)")
     }
-    
-    ; 잠시 후 프로그레스 바 닫기
-    SetTimer CloseProgressBar, -1500
+
+    ; 프로그레스 바 즉시 닫기 (1500ms 대기 없이)
+    SetTimer CloseProgressBar, -800
 }
 
 
