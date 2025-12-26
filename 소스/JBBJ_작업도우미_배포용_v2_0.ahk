@@ -602,7 +602,7 @@ Return
 
 OpenUserGuide:
     ; 사용설명서 HTML 파일 열기 (브라우저에서 GitHub 스타일로 표시)
-    userGuideFile := A_ScriptDir . "\..\사용설명서.html"
+    userGuideFile := A_ScriptDir . "\사용설명서.html"
     if FileExist(userGuideFile)
         Run, %userGuideFile%
     else
@@ -1149,8 +1149,8 @@ InitializePaths() {
     global g_JBBJLibrary, g_InstallFiles, g_FileCommentSystem, g_SVGConverter
     global g_AHKv2Path, g_UserGuideURL
 
-    ; 스크립트가 소스 폴더에 있으므로, 부모 폴더가 루트
-    g_RootDir := A_ScriptDir . "\.."
+    ; 스크립트가 루트 폴더에 직접 위치 (옵션 B: 소스 폴더 없음)
+    g_RootDir := A_ScriptDir
     g_SettingsDir := g_RootDir . "\설정"
     g_UtilsDir := g_RootDir . "\유틸"
     g_GamesDir := g_RootDir . "\게임"
@@ -1191,8 +1191,8 @@ CheckAndRegisterProtocol() {
         return
     }
 
-    ; 프로토콜 핸들러 경로
-    handlerPath := g_RootDir . "\소스\jbbj_protocol_handler.ahk"
+    ; 프로토콜 핸들러 경로 (루트 폴더에 위치)
+    handlerPath := g_RootDir . "\jbbj_protocol_handler.ahk"
 
     ; 핸들러 파일 존재 확인
     if !FileExist(handlerPath) {
