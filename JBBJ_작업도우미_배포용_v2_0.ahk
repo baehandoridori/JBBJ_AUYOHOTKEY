@@ -1181,18 +1181,11 @@ InitializePaths() {
 }
 
 ; --------------------------------------------------------------------------
-; [jbbj:// 프로토콜 등록 확인 및 자동 등록]
+; [jbbj:// 프로토콜 등록 확인 및 자동 등록/갱신]
+; 경로가 변경되었을 경우 자동으로 새 경로로 재등록
 ; --------------------------------------------------------------------------
 CheckAndRegisterProtocol() {
     global g_RootDir
-
-    ; 레지스트리에서 jbbj 프로토콜 확인
-    RegRead, existingValue, HKEY_CLASSES_ROOT, jbbj, URL Protocol
-
-    ; 이미 등록되어 있으면 스킵
-    if (!ErrorLevel) {
-        return
-    }
 
     ; 프로토콜 핸들러 경로 (루트 폴더에 위치)
     handlerPath := g_RootDir . "\jbbj_protocol_handler.ahk"
@@ -1208,26 +1201,41 @@ CheckAndRegisterProtocol() {
         ahkExePath := "C:\Program Files\AutoHotkey\AutoHotkey.exe"
     }
 
-    ; 레지스트리 등록 시도 (관리자 권한 필요할 수 있음)
+    ; 새로 등록할 명령어 값
+    newCommandValue := """" . ahkExePath . """ """ . handlerPath . """ ""%1"""
+
+    ; 기존 등록된 명령어 확인
+    RegRead, existingCommand, HKEY_CLASSES_ROOT, jbbj\shell\open\command
+    if (!ErrorLevel && existingCommand = newCommandValue) {
+        return  ; 이미 올바른 경로로 등록되어 있으면 스킵
+    }
+
+    ; HKEY_CURRENT_USER도 확인
+    RegRead, existingCommandUser, HKEY_CURRENT_USER\Software\Classes\jbbj\shell\open\command
+    if (!ErrorLevel && existingCommandUser = newCommandValue) {
+        return  ; 이미 올바른 경로로 등록되어 있으면 스킵
+    }
+
+    ; 레지스트리 등록/갱신 시도 (관리자 권한 필요할 수 있음)
     try {
-        ; HKEY_CLASSES_ROOT\jbbj 키 생성
+        ; HKEY_CLASSES_ROOT\jbbj 키 생성/갱신
         RegWrite, REG_SZ, HKEY_CLASSES_ROOT, jbbj,, URL:JBBJ Protocol
         RegWrite, REG_SZ, HKEY_CLASSES_ROOT, jbbj, URL Protocol,
 
-        ; shell\open\command 키 생성
-        commandValue := """" . ahkExePath . """ """ . handlerPath . """ ""%1"""
-        RegWrite, REG_SZ, HKEY_CLASSES_ROOT, jbbj\shell\open\command,, %commandValue%
+        ; shell\open\command 키 생성/갱신
+        RegWrite, REG_SZ, HKEY_CLASSES_ROOT, jbbj\shell\open\command,, %newCommandValue%
 
-        ; 성공 시 알림 (처음 등록 시에만)
-        ; TrayTip, JBBJ 작업도우미, jbbj:// 프로토콜이 등록되었습니다., 2, 1
+        ; 경로 갱신 시 알림
+        TrayTip, JBBJ 작업도우미, jbbj:// 프로토콜 경로가 갱신되었습니다., 2, 1
     } catch {
         ; 관리자 권한이 없으면 HKEY_CURRENT_USER에 등록 시도
         try {
-            RegWrite, REG_SZ, HKEY_CURRENT_USER\Software\Classes, jbbj,, URL:JBBJ Protocol
-            RegWrite, REG_SZ, HKEY_CURRENT_USER\Software\Classes, jbbj, URL Protocol,
+            RegWrite, REG_SZ, HKEY_CURRENT_USER\Software\Classes\jbbj,, URL:JBBJ Protocol
+            RegWrite, REG_SZ, HKEY_CURRENT_USER\Software\Classes\jbbj, URL Protocol,
 
-            commandValue := """" . ahkExePath . """ """ . handlerPath . """ ""%1"""
-            RegWrite, REG_SZ, HKEY_CURRENT_USER\Software\Classes\jbbj\shell\open\command,, %commandValue%
+            RegWrite, REG_SZ, HKEY_CURRENT_USER\Software\Classes\jbbj\shell\open\command,, %newCommandValue%
+
+            TrayTip, JBBJ 작업도우미, jbbj:// 프로토콜 경로가 갱신되었습니다., 2, 1
         }
     }
 }
