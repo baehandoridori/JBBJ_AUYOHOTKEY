@@ -1,0 +1,13 @@
+C:\HS_Autohotkeyscripting\JBBJ_AUYOHOTKEY\FocusMode\obj\Debug\net6.0-windows\FocusMode.csproj.AssemblyReference.cache
+C:\HS_Autohotkeyscripting\JBBJ_AUYOHOTKEY\FocusMode\obj\Debug\net6.0-windows\MainWindow.baml
+C:\HS_Autohotkeyscripting\JBBJ_AUYOHOTKEY\FocusMode\obj\Debug\net6.0-windows\OverlayWindow.baml
+C:\HS_Autohotkeyscripting\JBBJ_AUYOHOTKEY\FocusMode\obj\Debug\net6.0-windows\App.baml
+C:\HS_Autohotkeyscripting\JBBJ_AUYOHOTKEY\FocusMode\obj\Debug\net6.0-windows\MainWindow.g.cs
+C:\HS_Autohotkeyscripting\JBBJ_AUYOHOTKEY\FocusMode\obj\Debug\net6.0-windows\OverlayWindow.g.cs
+C:\HS_Autohotkeyscripting\JBBJ_AUYOHOTKEY\FocusMode\obj\Debug\net6.0-windows\App.g.cs
+C:\HS_Autohotkeyscripting\JBBJ_AUYOHOTKEY\FocusMode\obj\Debug\net6.0-windows\FocusMode_MarkupCompile.cache
+C:\HS_Autohotkeyscripting\JBBJ_AUYOHOTKEY\FocusMode\obj\Debug\net6.0-windows\FocusMode.g.resources
+C:\HS_Autohotkeyscripting\JBBJ_AUYOHOTKEY\FocusMode\obj\Debug\net6.0-windows\FocusMode.GeneratedMSBuildEditorConfig.editorconfig
+C:\HS_Autohotkeyscripting\JBBJ_AUYOHOTKEY\FocusMode\obj\Debug\net6.0-windows\FocusMode.AssemblyInfoInputs.cache
+C:\HS_Autohotkeyscripting\JBBJ_AUYOHOTKEY\FocusMode\obj\Debug\net6.0-windows\FocusMode.AssemblyInfo.cs
+C:\HS_Autohotkeyscripting\JBBJ_AUYOHOTKEY\FocusMode\obj\Debug\net6.0-windows\FocusMode.csproj.CoreCompileInputs.cache
