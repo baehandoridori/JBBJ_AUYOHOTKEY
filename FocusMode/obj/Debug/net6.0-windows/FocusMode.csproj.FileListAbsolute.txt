@@ -11,3 +11,13 @@ C:\HS_Autohotkeyscripting\JBBJ_AUYOHOTKEY\FocusMode\obj\Debug\net6.0-windows\Foc
 C:\HS_Autohotkeyscripting\JBBJ_AUYOHOTKEY\FocusMode\obj\Debug\net6.0-windows\FocusMode.AssemblyInfoInputs.cache
 C:\HS_Autohotkeyscripting\JBBJ_AUYOHOTKEY\FocusMode\obj\Debug\net6.0-windows\FocusMode.AssemblyInfo.cs
 C:\HS_Autohotkeyscripting\JBBJ_AUYOHOTKEY\FocusMode\obj\Debug\net6.0-windows\FocusMode.csproj.CoreCompileInputs.cache
+C:\HS_Autohotkeyscripting\JBBJ_AUYOHOTKEY\FocusMode\bin\Debug\net6.0-windows\FocusMode.exe
+C:\HS_Autohotkeyscripting\JBBJ_AUYOHOTKEY\FocusMode\bin\Debug\net6.0-windows\FocusMode.deps.json
+C:\HS_Autohotkeyscripting\JBBJ_AUYOHOTKEY\FocusMode\bin\Debug\net6.0-windows\FocusMode.runtimeconfig.json
+C:\HS_Autohotkeyscripting\JBBJ_AUYOHOTKEY\FocusMode\bin\Debug\net6.0-windows\FocusMode.dll
+C:\HS_Autohotkeyscripting\JBBJ_AUYOHOTKEY\FocusMode\bin\Debug\net6.0-windows\FocusMode.pdb
+C:\HS_Autohotkeyscripting\JBBJ_AUYOHOTKEY\FocusMode\obj\Debug\net6.0-windows\FocusMode.dll
+C:\HS_Autohotkeyscripting\JBBJ_AUYOHOTKEY\FocusMode\obj\Debug\net6.0-windows\refint\FocusMode.dll
+C:\HS_Autohotkeyscripting\JBBJ_AUYOHOTKEY\FocusMode\obj\Debug\net6.0-windows\FocusMode.pdb
+C:\HS_Autohotkeyscripting\JBBJ_AUYOHOTKEY\FocusMode\obj\Debug\net6.0-windows\FocusMode.genruntimeconfig.cache
+C:\HS_Autohotkeyscripting\JBBJ_AUYOHOTKEY\FocusMode\obj\Debug\net6.0-windows\ref\FocusMode.dll
