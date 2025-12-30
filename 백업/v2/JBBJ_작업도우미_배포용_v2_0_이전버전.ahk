@@ -350,59 +350,116 @@ FakeLoadingDriveCheck()
 
 
 ; --------------------------------------------------------------------------
-; [추가] 구글 드라이브 로딩 + 파일 존재 체크 (3~6초 랜덤)
+; [추가] 구글 드라이브 로딩 + 파일 존재 체크 (세분화된 오류 처리)
 ; --------------------------------------------------------------------------
 FakeLoadingDriveCheck() {
-    global g_SettingsDir, LoadingPB, LoadingPercentText  ; GUI 컨트롤 변수는 global 선언 필요
+    global g_SettingsDir, g_JBBJLibrary, g_FileCommentSystem, g_SVGConverter, g_AHKv2Path
+    global LoadingPB, LoadingPercentText
+
+    ; 체크할 파일/경로 목록
     aliasFile := g_SettingsDir . "\alias.ini"
     classFile := g_SettingsDir . "\program_classes.txt"
+    settingsFile := g_SettingsDir . "\settings.ini"
 
-    Random, randomDelay, 3000, 6000
+    Random, randomDelay, 2000, 4000
     startTick := A_TickCount
 
     Gui, 99: New
     Gui, 99: -Caption +ToolWindow +AlwaysOnTop
     Gui, 99: Font, s9, Arial
-    Gui, 99: Add, Text, x10 y10 w180 h20, 구글 드라이브 로딩중...
+    Gui, 99: Add, Text, x10 y10 w180 h20, 구글 드라이브 연결 확인중...
     Gui, 99: Add, Progress, x10 y35 w180 h15 vLoadingPB Range0-100
     Gui, 99: Add, Text, x10 y55 w180 h20 vLoadingPercentText Center, 0`%
-    Gui, 99: Show, w200 h80, 로딩중
+    Gui, 99: Show, w200 h80, 연결 확인
 
+    ; 필수 파일 체크 (settings.ini, alias.ini, program_classes.txt)
+    essentialFound := false
     Loop
-        {
-            elapsed := A_TickCount - startTick
-    
-            if (FileExist(aliasFile) && FileExist(classFile)) {
-                GuiControl, 99:, LoadingPB, 100
-                GuiControl, 99:, LoadingPercentText, 100`%
-                Sleep, 300
-                break  ; 로딩 성공 -> 루프 탈출
-            }
+    {
+        elapsed := A_TickCount - startTick
 
-            progress := Floor(elapsed / randomDelay * 100)
-            if (progress > 100)
-                progress := 100
-
-            GuiControl, 99:, LoadingPB, %progress%
-            GuiControl, 99:, LoadingPercentText, %progress%`%
-    
-            if (elapsed >= randomDelay) {
-                MsgBox, 262192, 로딩 실패,
-                (
-                    구글 드라이브가 연결되어 있지 않습니다. 
-                    `n구글 드라이브 연결 상태를 확인 후 스크립트를 재실행 해주세요.
-                )
-                fail := true
-                break
-            }
-            Sleep, 200
+        ; 필수 파일들이 모두 존재하는지 확인
+        if (FileExist(settingsFile) && FileExist(aliasFile) && FileExist(classFile)) {
+            GuiControl, 99:, LoadingPB, 100
+            GuiControl, 99:, LoadingPercentText, 100`%
+            Sleep, 300
+            essentialFound := true
+            break
         }
-        Gui, 99: Destroy
-    
-        if (fail) {
-            ExitApp
+
+        progress := Floor(elapsed / randomDelay * 100)
+        if (progress > 100)
+            progress := 100
+
+        GuiControl, 99:, LoadingPB, %progress%
+        GuiControl, 99:, LoadingPercentText, %progress%`%
+
+        if (elapsed >= randomDelay) {
+            break  ; 타임아웃 - 체크 결과 확인으로 이동
+        }
+        Sleep, 100
+    }
+    Gui, 99: Destroy
+
+    ; 연결 상태 상세 체크
+    missingItems := ""
+    warningItems := ""
+
+    ; === 필수 항목 체크 ===
+    if !FileExist(settingsFile)
+        missingItems .= "• 설정 파일 (settings.ini)`n"
+    if !FileExist(aliasFile)
+        missingItems .= "• 별칭 파일 (alias.ini)`n"
+    if !FileExist(classFile)
+        missingItems .= "• 프로그램 클래스 파일 (program_classes.txt)`n"
+
+    ; === 선택 항목 체크 (경고만) ===
+    if (g_JBBJLibrary != "" && !FileExist(g_JBBJLibrary))
+        warningItems .= "• JBBJ 자료실: " . g_JBBJLibrary . "`n"
+    if (g_FileCommentSystem != "" && !FileExist(g_FileCommentSystem))
+        warningItems .= "• 파일 주석 시스템`n"
+    if (g_SVGConverter != "" && !FileExist(g_SVGConverter))
+        warningItems .= "• SVG 변환기`n"
+    if (g_AHKv2Path != "" && !FileExist(g_AHKv2Path))
+        warningItems .= "• AutoHotkey v2 (파일공유 기능 필요)`n"
+
+    ; 오류/경고 메시지 표시
+    if (missingItems != "" || warningItems != "") {
+        msg := ""
+
+        if (missingItems != "") {
+            msg .= "[ 연결 실패 - 필수 항목 ]`n"
+            msg .= missingItems
+            msg .= "`n"
+        }
+
+        if (warningItems != "") {
+            msg .= "[ 연결 실패 - 선택 항목 ]`n"
+            msg .= warningItems
+            msg .= "`n"
+        }
+
+        msg .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━`n"
+
+        if (missingItems != "") {
+            msg .= "`n구글 드라이브 연결을 확인해주세요.`n"
+            msg .= "필수 항목이 없으면 일부 기능이 작동하지 않을 수 있습니다.`n`n"
+            msg .= "그래도 계속 실행하시겠습니까?"
+
+            MsgBox, 308, 연결 상태 확인, %msg%
+            IfMsgBox No
+            {
+                ExitApp
+            }
+        } else {
+            ; 선택 항목만 없는 경우 - 경고만 표시
+            msg .= "`n일부 기능이 비활성화됩니다.`n"
+            msg .= "계속 실행합니다."
+
+            MsgBox, 48, 연결 상태 확인, %msg%
         }
     }
+}
 
 
 
@@ -979,12 +1036,6 @@ return
 
 ^+v::
     global g_LastOriginalPath, g_LastJbbjLink
-
-    ; ─────────────────────────────────────────────
-    ; [디버그] 어떤 값이 저장되어 있는지 확인
-    ; 문제 해결 후 이 줄을 주석 처리하세요
-    ; ─────────────────────────────────────────────
-    ; MsgBox, 64, 디버그, 텍스트: %g_LastOriginalPath%`n`n링크: %g_LastJbbjLink%
 
     ; 저장된 경로가 없으면 일반 붙여넣기
     if (g_LastOriginalPath = "" || g_LastJbbjLink = "")
