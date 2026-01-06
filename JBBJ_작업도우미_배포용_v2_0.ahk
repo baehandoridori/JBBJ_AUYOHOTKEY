@@ -945,15 +945,18 @@ return
 
 $%::
 {
-    ; 텍스트 입력이 가능한 상태인지 확인 (커서가 활성화되어 있는지)
-    ; 주소창, 검색창, 파일명 변경 등 텍스트 입력 상태에서만 동작
-    CoordMode, Caret, Screen
-    if (A_CaretX != "") {
+    ; 현재 포커스된 컨트롤 확인
+    ControlGetFocus, fc, A
+
+    ; 텍스트 입력 가능한 컨트롤에서만 자동완성
+    ; Edit, ComboBox, 또는 주소창 관련 컨트롤
+    if (fc != "" && (InStr(fc, "Edit") || InStr(fc, "Combo") || InStr(fc, "Address") || InStr(fc, "Search"))) {
         ; %% 입력 후 커서를 가운데로
-        SendInput, {Text}`%`%
-        SendInput, {Left}
+        Send, `%`%
+        Sleep, 10
+        Send, {Left}
     } else {
-        SendInput, {Text}`%
+        Send, `%
     }
 }
 return
@@ -1225,40 +1228,50 @@ SetDrivePathVariables() {
     if !FileExist(settingsFile)
         return
 
-    ; settings.ini의 [경로] 섹션 읽기
-    IniRead, pathSection, %settingsFile%, 경로
-    if (ErrorLevel || pathSection = "")
-        return
-
     ; 환경 변수 변경 여부 추적
     changedVars := []
+    inPathSection := false
 
-    ; 각 줄을 파싱하여 환경 변수로 등록
-    Loop, Parse, pathSection, `n, `r
+    ; 파일을 직접 읽어서 [경로] 섹션 파싱
+    Loop, Read, %settingsFile%
     {
-        line := Trim(A_LoopField)
-        if (line = "")
+        line := Trim(A_LoopReadLine)
+
+        ; 빈 줄이나 주석은 스킵
+        if (line = "" || SubStr(line, 1, 1) = ";")
             continue
 
-        ; key=value 형식 파싱
-        pos := InStr(line, "=")
-        if (pos) {
-            varName := Trim(SubStr(line, 1, pos-1))
-            varValue := Trim(SubStr(line, pos+1))
+        ; 섹션 헤더 확인
+        if (SubStr(line, 1, 1) = "[") {
+            ; [경로] 섹션인지 확인
+            if (InStr(line, "[경로]") || InStr(line, "[경로]"))
+                inPathSection := true
+            else
+                inPathSection := false
+            continue
+        }
 
-            ; 빈 값이면 스킵
-            if (varValue = "" || varValue = "ERROR")
-                continue
+        ; [경로] 섹션 내의 key=value만 처리
+        if (inPathSection) {
+            pos := InStr(line, "=")
+            if (pos) {
+                varName := Trim(SubStr(line, 1, pos-1))
+                varValue := Trim(SubStr(line, pos+1))
 
-            ; 현재 등록된 값 확인
-            RegRead, existingValue, HKEY_CURRENT_USER\Environment, %varName%
+                ; 빈 값이면 스킵
+                if (varValue = "" || varValue = "ERROR")
+                    continue
 
-            ; 값이 다를 때만 업데이트
-            if (ErrorLevel || existingValue != varValue) {
-                ; 레지스트리에 환경 변수 등록
-                RegWrite, REG_EXPAND_SZ, HKEY_CURRENT_USER\Environment, %varName%, %varValue%
-                if (!ErrorLevel)
-                    changedVars.Push(varName)
+                ; 현재 등록된 값 확인
+                RegRead, existingValue, HKEY_CURRENT_USER\Environment, %varName%
+
+                ; 값이 다를 때만 업데이트
+                if (ErrorLevel || existingValue != varValue) {
+                    ; 레지스트리에 환경 변수 등록
+                    RegWrite, REG_EXPAND_SZ, HKEY_CURRENT_USER\Environment, %varName%, %varValue%
+                    if (!ErrorLevel)
+                        changedVars.Push(varName)
+                }
             }
         }
     }
@@ -1267,7 +1280,7 @@ SetDrivePathVariables() {
     if (changedVars.Length() > 0) {
         ; WM_SETTINGCHANGE 메시지 전송 (탐색기가 환경 변수 변경을 인식)
         ; HWND_BROADCAST = 0xFFFF, WM_SETTINGCHANGE = 0x001A
-        SendMessage, 0x001A, 0, "Environment",, ahk_id 0xFFFF
+        EnvUpdate  ; 환경 변수 갱신 알림
 
         ; 등록된 변수 목록 만들기
         varList := ""
