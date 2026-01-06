@@ -945,15 +945,15 @@ return
 
 $%::
 {
-    ; 현재 포커스된 컨트롤 확인
-    ControlGetFocus, focusedControl, A
-
-    ; 주소창(Edit 컨트롤)에 포커스가 있을 때만 자동완성
-    ; Windows 탐색기 주소창: Edit1, ComboBox 등
-    if (InStr(focusedControl, "Edit") || InStr(focusedControl, "Address")) {
-        Send, `%`%{Left}  ; %%를 입력하고 커서를 가운데로
+    ; 텍스트 입력이 가능한 상태인지 확인 (커서가 활성화되어 있는지)
+    ; 주소창, 검색창, 파일명 변경 등 텍스트 입력 상태에서만 동작
+    CoordMode, Caret, Screen
+    if (A_CaretX != "") {
+        ; %% 입력 후 커서를 가운데로
+        SendInput, {Text}`%`%
+        SendInput, {Left}
     } else {
-        Send, `%  ; 일반 % 입력
+        SendInput, {Text}`%
     }
 }
 return
