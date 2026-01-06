@@ -945,19 +945,10 @@ return
 
 $%::
 {
-    ; 현재 포커스된 컨트롤 확인
-    ControlGetFocus, fc, A
-
-    ; 텍스트 입력 가능한 컨트롤에서만 자동완성
-    ; Edit, ComboBox, 또는 주소창 관련 컨트롤
-    if (fc != "" && (InStr(fc, "Edit") || InStr(fc, "Combo") || InStr(fc, "Address") || InStr(fc, "Search"))) {
-        ; %% 입력 후 커서를 가운데로
-        Send, `%`%
-        Sleep, 10
-        Send, {Left}
-    } else {
-        Send, `%
-    }
+    ; %% 입력 후 커서를 가운데로
+    SendInput, `%`%
+    Sleep, 50
+    SendInput, {Left}
 }
 return
 
