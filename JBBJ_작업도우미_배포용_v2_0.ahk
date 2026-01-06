@@ -1232,6 +1232,9 @@ SetDrivePathVariables() {
     changedVars := []
     inPathSection := false
 
+    ; UTF-8 인코딩으로 파일 읽기 설정
+    FileEncoding, UTF-8
+
     ; 파일을 직접 읽어서 [경로] 섹션 파싱
     Loop, Read, %settingsFile%
     {
