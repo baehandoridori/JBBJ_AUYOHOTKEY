@@ -217,7 +217,7 @@ Gui, Tab
 ; [★ 추가: "기능 토글"용 버튼(박스형) 그룹박스 및 버튼들 ]
 ; --------------------------------------------------------------------------
 Gui, Font, S10 CDefault norm, Verdana
-Gui, Add, GroupBox, x350 y69 w100 h185 , 기능 토글  ; 새 그룹박스
+Gui, Add, GroupBox, x350 y69 w100 h145 , 기능 토글  ; 새 그룹박스
 Gui, Font, cGreen
 
 Gui, Font, S7, Verdana
@@ -228,9 +228,9 @@ Gui, Add, Button, x360 y110 w80 h22 hwndHAutoIME vBtnAutoIME gToggleAutoIME +%BS
 ; - [AlwaysOnTop] 버튼
 Gui, Add, Button, x360 y135 w80 h22 hwndHAlwaysOnTop vBtnAlwaysOnTop gToggleAlwaysOnTop +%BS_PUSHLIKE%, AlwaysOnTop
 ; = [EDPS] 버튼
-Gui, Add, Button, x360 y185 w80 h22 hwndHFilecomment vBtnFilecomment gToggleFilecomment +%BS_PUSHLIKE%, 파일주석시스템
+Gui, Add, Button, x360 y160 w80 h22 hwndHFilecomment vBtnFilecomment gToggleFilecomment +%BS_PUSHLIKE%, 파일주석시스템
 ; - [경로→링크] 버튼
-Gui, Add, Button, x360 y210 w80 h22 hwndHPathToLink vBtnPathToLink gTogglePathToLink +%BS_PUSHLIKE%, 경로→링크
+Gui, Add, Button, x360 y185 w80 h22 hwndHPathToLink vBtnPathToLink gTogglePathToLink +%BS_PUSHLIKE%, 경로→링크
 
 
 ; --------------------------------------------------------------------------
