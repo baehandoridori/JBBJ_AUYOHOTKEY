@@ -734,6 +734,18 @@ Check:
    if (checkAutoIME != 1)
        return
 
+   ; ─────────────────────────────────────────────
+   ; [마우스 버튼 또는 수정자 키가 눌려 있으면 스킵]
+   ; 드래그 중이거나 다른 스크립트와 충돌 방지
+   ; ─────────────────────────────────────────────
+   ; 마우스 버튼 체크 (왼쪽, 오른쪽, 가운데)
+   if (GetKeyState("LButton", "P") || GetKeyState("RButton", "P") || GetKeyState("MButton", "P"))
+       return
+
+   ; 수정자 키 체크 (Ctrl, Shift, Alt)
+   if (GetKeyState("Ctrl", "P") || GetKeyState("Shift", "P") || GetKeyState("Alt", "P"))
+       return
+
    MouseGetPos, cx, cy
    if (cx != lastX or cy != lastY) {
        ; IME 체크 (현재 IME가 한글이면 영문으로 전환)
