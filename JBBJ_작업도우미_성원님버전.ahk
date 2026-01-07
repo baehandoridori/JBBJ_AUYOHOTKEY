@@ -518,7 +518,6 @@ ReloadDriveFiles:
 {
     FakeLoadingDriveCheck()
     LoadAliases()
-    LoadProgramClasses()
     return
 }
 
