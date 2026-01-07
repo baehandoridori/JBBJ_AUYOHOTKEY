@@ -889,67 +889,6 @@ GuiEscape:
 return
 
 ; --------------------------------------------------------------------------
-; [CapsLock 더블탭으로 경로 열기]
-; ※ 틸드(~) 사용: 다른 스크립트에서 CapsLock+키 조합 사용 가능하도록 함
-; --------------------------------------------------------------------------
-~CapsLock::
-    ; 경로 쉽게열기가 OFF라면 스킵 (CapsLock 토글은 시스템이 자동 처리)
-    if (checkEasyOpen != 1) {
-        lastCapsPress := A_TickCount
-        return
-    }
-
-    currentTime := A_TickCount
-    if (currentTime - lastCapsPress < 300)
-    {
-        ; CapsLock 더블탭 감지됨 -> 복사된 경로 열기
-        KeyWait, CapsLock
-        ClipSaved := ClipboardAll
-        Clipboard := ""
-        Send, ^c
-        ClipWait, 0.5
-
-        if !ErrorLevel
-        {
-            folderPath := Clipboard
-
-            ; ─────────────────────────────────────────────
-            ; [경로 정제 개선] Slack 등에서 복사 시 불필요한 문자 제거
-            ; ─────────────────────────────────────────────
-            ; 1. 앞뒤 공백/줄바꿈 제거
-            folderPath := Trim(folderPath)
-            folderPath := RegExReplace(folderPath, "^[\s\r\n]+")
-            folderPath := RegExReplace(folderPath, "[\s\r\n]+$")
-
-            ; 2. G:\ ~ Z:\ 드라이브 경로 추출 (Slack 타임스탬프 등 제거)
-            if RegExMatch(folderPath, "i)([G-Z]:\\[^<>:""\|\?\*\r\n]+)", extractedPath)
-                folderPath := extractedPath1
-
-            ; 3. 경로 끝의 불필요한 문자 제거 (마침표, 쉼표 등)
-            folderPath := RegExReplace(folderPath, "[.,;:\s]+$")
-
-            if FileExist(folderPath)
-            {
-                ; 파일인지 폴더인지 확인
-                FileGetAttrib, attr, %folderPath%
-                if InStr(attr, "D")
-                    Run, explorer "%folderPath%"
-                else
-                    Run, explorer /select`,"%folderPath%"
-            }
-            else
-            {
-                MsgBox, 48, 경로 열기 실패, 경로를 찾을 수 없습니다:`n`n%folderPath%
-            }
-        }
-        Clipboard := ClipSaved
-        ClipSaved := ""
-    }
-    ; 틸드(~) 사용으로 CapsLock 토글은 시스템이 자동 처리하므로 else 블록 불필요
-    lastCapsPress := currentTime
-return
-
-; --------------------------------------------------------------------------
 ; [파일 탐색기 주소창에서 % 자동완성]
 ; %를 입력하면 %%가 입력되고 커서가 가운데로 이동
 ; 환경 변수 입력을 편리하게 해줌 (예: %자료실%)
