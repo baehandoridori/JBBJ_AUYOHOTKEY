@@ -749,8 +749,9 @@ Check:
    MouseGetPos, cx, cy
    if (cx != lastX or cy != lastY) {
        ; IME 체크 (현재 IME가 한글이면 영문으로 전환)
+       ; ret = -1: 새 IME (감지 불가), ret = 0: 영문, ret > 0: 한글
        ret := IME_CHECK("A")
-       if (ret != 0) {
+       if (ret > 0) {
            ; programClassList에 등록된 클래스 중 현재 활성창과 일치하면 전환
            for index, classValue in programClassList {
                if WinActive(classValue) {
@@ -766,7 +767,12 @@ return
 
 IME_CHECK(WinTitle) {
     WinGet, hWnd, ID, %WinTitle%
-    Return Send_ImeControl(ImmGetDefaultIMEWnd(hWnd), 0x005, "")
+    DefaultIMEWnd := ImmGetDefaultIMEWnd(hWnd)
+    ; 새 IME 사용 시 (Windows 11 기본 IME) DefaultIMEWnd가 0 반환
+    ; 이 경우 한영 상태 감지 불가능하므로 -1 반환하여 한영전환 스킵
+    if (DefaultIMEWnd = 0)
+        Return -1
+    Return Send_ImeControl(DefaultIMEWnd, 0x005, "")
 }
 
 Send_ImeControl(DefaultIMEWnd, wParam, lParam) {
@@ -884,11 +890,14 @@ return
 
 ; --------------------------------------------------------------------------
 ; [CapsLock 더블탭으로 경로 열기]
+; ※ 틸드(~) 사용: 다른 스크립트에서 CapsLock+키 조합 사용 가능하도록 함
 ; --------------------------------------------------------------------------
-CapsLock::
-    ; 경로 쉽게열기가 OFF라면 스킵
-    if (checkEasyOpen != 1)
+~CapsLock::
+    ; 경로 쉽게열기가 OFF라면 스킵 (CapsLock 토글은 시스템이 자동 처리)
+    if (checkEasyOpen != 1) {
+        lastCapsPress := A_TickCount
         return
+    }
 
     currentTime := A_TickCount
     if (currentTime - lastCapsPress < 300)
@@ -936,15 +945,7 @@ CapsLock::
         Clipboard := ClipSaved
         ClipSaved := ""
     }
-    else
-    {
-        ; 단순 CapsLock 토글
-        KeyWait, CapsLock
-        if GetKeyState("CapsLock", "T")
-            SetCapsLockState, Off
-        else
-            SetCapsLockState, On
-    }
+    ; 틸드(~) 사용으로 CapsLock 토글은 시스템이 자동 처리하므로 else 블록 불필요
     lastCapsPress := currentTime
 return
 
