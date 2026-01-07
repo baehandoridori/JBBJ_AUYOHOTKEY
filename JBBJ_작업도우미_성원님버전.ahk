@@ -144,6 +144,9 @@ Menu, Tray, Icon, Shell32.dll, 283
 Gui, Font, S14 CDefault, Verdana
 Gui, Add, Text, x152 y9 w150 h20 , JBBJ 작업 도우미
 
+Gui, Font, S8 cgray italic, Verdana
+Gui, Add, Text, x302 y12 w100 h20 , (성원님 버전ㅋ)
+
 Gui, Font, S9 cgray italic, Verdana
 Gui, Add, Text, x12 y40 w340 h20 , 만든놈 = 한솔배
 
