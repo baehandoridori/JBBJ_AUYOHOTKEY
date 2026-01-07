@@ -43,7 +43,6 @@ g_WorkerFullPath := A_ScriptFullPath
 ; --- 메인 스크립트용 전역 ---
 global lastX := 0            ; 마우스 X좌표 기록(한영전환 체크용)
 global lastY := 0            ; 마우스 Y좌표 기록(한영전환 체크용)
-global lastCapsPress := 0    ; CapsLock 더블탭 시간 기록
 global alwaysOnTopWindow := "" ; AlwaysOnTop 활성화된 창의 HWND(식별자)
 global fileSharePID := 0     ; 파일공유_JBBJ 체크박스용 PID (외부 스크립트 실행 시 PID)
 global FilecommentPID := 0            ; 파일주석시스템 토글 (기본 on)
@@ -55,7 +54,6 @@ global programClassList := []
 
 ; --- 추가: 옵션 토글을 위한 전역 체크박스 상태 ---
 global checkAutoIME := 1         ; 자동 한영전환 토글 (기본 On)
-global checkEasyOpen := 1        ; 경로 쉽게열기 토글 (기본 On)
 global checkAlwaysOnTop := 1     ; alwaysOnTop 토글 (기본 On)
 global FileShareChecked := 1     ; 파일공유_JBBJ 토글 (기본 On)
 global FilecommentChecked := 1   ; 파일주석시스템 토글 (기본 On)
@@ -66,7 +64,7 @@ global g_LastJbbjLink := ""      ; Slack 하이퍼링크용 jbbj:// 링크
 
 
 ; --- 추가: 툴팁용 전역 핸들 변수 (각 버튼에 대한 hWnd) ---
-global HFileShare, HAutoIME, HEasyOpen, HAlwaysOnTop, HFilecomment, HSvg, Hfeedback, HColor, HAp, Hsnake, H2048, Hmenuchcun, Hfortune, Hcutnumber, Hhelp, Hsetup, HPathToLink
+global HFileShare, HAutoIME, HAlwaysOnTop, HFilecomment, HSvg, Hfeedback, HColor, HAp, Hsnake, H2048, Hmenuchcun, Hfortune, Hcutnumber, Hhelp, Hsetup, HPathToLink
 
 ; --- 타임 트래커(ProgressBar)용 전역 ---
 global totalUsage := 0           ; 전체 누적 사용 시간(초)
@@ -166,7 +164,7 @@ Gui, Add, Text, x12 y40 w340 h20 , 만든놈 = 한솔배
 ; [새로운 GUI (탭 형태)]
 ; ---------------------------------------------------------------------------------
 Gui, Font, S11 CDefault norm, Verdana
-Gui, Add, Tab, x12 y69 w330 h160 vBasicTab, 자동한영전환|경로 열기|파일공유JBBJ|AOT
+Gui, Add, Tab, x12 y69 w330 h160 vBasicTab, 자동한영전환|파일공유JBBJ|AOT
 
 ; ---------------------------------------------------------------------------------
 ; [첫 번째 탭: 자동한영전환]
@@ -185,18 +183,9 @@ Gui, Add, Button, x132 y100 w80 h25 gInitialSetup, 초기 설정
 Gui, Add, Button, x212 y100 w120 h25 gShowSupportedPrograms, 지원 프로그램 목록
 
 ; ---------------------------------------------------------------------------------
-; [두 번째 탭: 파일경로 쉽게열기]
+; [두 번째 탭: 파일공유JBBJ]
 ; ---------------------------------------------------------------------------------
 Gui, Tab, 2
-
-
-Gui, Font, S8 CDefault, Verdana
-Gui, Add, Text, x22 y130 w310 h40 , 경로 드래그 후 Caps Lock 키를 두번 누르면`n해당 경로가 파일 탐색기에 열립니다.
-Gui, Font, S13 Cgreen Bold, Verdana
-Gui, Add, Text, x22 y100 w150 h30 , 파일 경로 쉽게열기
-
-
-Gui, Tab, 3
 
 
 Gui, Font, S8 CDefault norm, Verdana
@@ -204,8 +193,10 @@ Gui, Add, Text, x22 y130 w310 h40 , 공유할 파일을 선택한 후, Alt+F12 �
 Gui, Font, S13 Cgreen Bold, Verdana
 Gui, Add, Text, x22 y100 w150 h30 , 파일공유 JBBJ
 
-
-Gui, Tab, 4
+; ---------------------------------------------------------------------------------
+; [세 번째 탭: AOT]
+; ---------------------------------------------------------------------------------
+Gui, Tab, 3
 
 
 Gui, Font, S8 CDefault norm, Verdana
@@ -234,10 +225,8 @@ Gui, Font, S7, Verdana
 Gui, Add, Button, x360 y85 w80 h22 hwndHFileShare vBtnFileShare gToggleFileShare +%BS_PUSHLIKE%, 파일공유_JBBJ
 ; - [자동 한영전환] 버튼
 Gui, Add, Button, x360 y110 w80 h22 hwndHAutoIME vBtnAutoIME gToggleAutoIME +%BS_PUSHLIKE%, 자동 한영전환
-; - [경로 쉽게열기] 버튼
-Gui, Add, Button, x360 y135 w80 h22 hwndHEasyOpen vBtnEasyOpen gToggleEasyOpen +%BS_PUSHLIKE%, 경로 쉽게열기
 ; - [AlwaysOnTop] 버튼
-Gui, Add, Button, x360 y160 w80 h22 hwndHAlwaysOnTop vBtnAlwaysOnTop gToggleAlwaysOnTop +%BS_PUSHLIKE%, AlwaysOnTop
+Gui, Add, Button, x360 y135 w80 h22 hwndHAlwaysOnTop vBtnAlwaysOnTop gToggleAlwaysOnTop +%BS_PUSHLIKE%, AlwaysOnTop
 ; = [EDPS] 버튼
 Gui, Add, Button, x360 y185 w80 h22 hwndHFilecomment vBtnFilecomment gToggleFilecomment +%BS_PUSHLIKE%, 파일주석시스템
 ; - [경로→링크] 버튼
@@ -494,21 +483,6 @@ ToggleAutoIME:
 }
 return
 
-ToggleEasyOpen:
-{
-    global checkEasyOpen
-    checkEasyOpen := !checkEasyOpen
-    
-    if (checkEasyOpen) {
-        GuiControl, +Background00FF00, BtnEasyOpen
-        GuiControl,, BtnEasyOpen, ON 쉽게열기
-    } else {
-        GuiControl, +BackgroundFF0000, BtnEasyOpen
-        GuiControl,, BtnEasyOpen, OFF 쉽게열기
-    }
-}
-return
-
 ToggleAlwaysOnTop:
 {
     global checkAlwaysOnTop
@@ -686,8 +660,6 @@ WM_MOUSEMOVE(wParam, lParam, msg, hwnd) {
             ToolTip, 단축키: "Alt + F12"
         else if (hwnd = HAutoIME)
             ToolTip, 단축키: "마우스를 움직일 때 자동으로 영문으로 전환됩니다"
-        else if (hwnd = HEasyOpen)
-            ToolTip, 단축키: "CapsLock 키 더블 탭"
         else if (hwnd = HAlwaysOnTop)
             ToolTip, 단축키: "Alt + `"
         else if (hwnd = HFilecomment) 
@@ -717,7 +689,7 @@ WM_MOUSEMOVE(wParam, lParam, msg, hwnd) {
         else
             ToolTip  ; 다른 컨트롤 위에서는 툴팁 제거
         
-        if (hwnd = HFileShare || hwnd = HAutoIME || hwnd = HEasyOpen || hwnd = HAlwaysOnTop || hwnd = HFilecomment || hwnd = Hsvg || hwnd = Hfeedback || hwnd = HColor || hwnd = Hsetup || hwnd = Hcutnumber || hwnd = Hhelp || hwnd = HAp || hwnd = Hsnake || hwnd = H2048 || hwnd = Hmenuchcun || hwnd = Hfortune)
+        if (hwnd = HFileShare || hwnd = HAutoIME || hwnd = HAlwaysOnTop || hwnd = HFilecomment || hwnd = Hsvg || hwnd = Hfeedback || hwnd = HColor || hwnd = Hsetup || hwnd = Hcutnumber || hwnd = Hhelp || hwnd = HAp || hwnd = Hsnake || hwnd = H2048 || hwnd = Hmenuchcun || hwnd = Hfortune)
             SetTimer, RemoveToolTip, -3000
     }
 }
