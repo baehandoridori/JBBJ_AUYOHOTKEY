@@ -107,6 +107,9 @@ global g_UserGuideURL := ""      ; 사용설명서 URL
 ; 경로 초기화
 InitializePaths()
 
+; 환경 변수 설정 (탐색기에서 %자료실% 등으로 접근 가능)
+SetDrivePathVariables()
+
 ; jbbj:// 프로토콜 등록 확인 및 자동 등록
 CheckAndRegisterProtocol()
 
@@ -934,6 +937,24 @@ CapsLock::
 return
 
 ; --------------------------------------------------------------------------
+; [파일 탐색기 주소창에서 % 자동완성]
+; %를 입력하면 %%가 입력되고 커서가 가운데로 이동
+; 환경 변수 입력을 편리하게 해줌 (예: %자료실%)
+; --------------------------------------------------------------------------
+#IfWinActive ahk_class CabinetWClass  ; 파일 탐색기에서만
+
+$%::
+{
+    ; %% 입력 후 커서를 가운데로
+    SendInput, `%`%
+    Sleep, 50
+    SendInput, {Left}
+}
+return
+
+#IfWinActive  ; 컨텍스트 해제
+
+; --------------------------------------------------------------------------
 ; [창을 항상 위에 고정하는 기능] (Alt+`)
 ; --------------------------------------------------------------------------
 
@@ -1183,6 +1204,89 @@ InitializePaths() {
         g_SVGConverter := ""
         g_AHKv2Path := "C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe"
         g_UserGuideURL := "https://studio-jbbj.slack.com/docs/T03HKE9MNCV/F086ZGRSBB4"
+    }
+}
+
+; =================================================================================================
+; [ 환경 변수 설정 함수 ]
+; settings.ini의 경로를 Windows 환경 변수로 등록
+; 파일 탐색기에서 %자료실%, %설치파일% 등으로 접근 가능
+; =================================================================================================
+SetDrivePathVariables() {
+    global g_SettingsDir
+
+    settingsFile := g_SettingsDir . "\settings.ini"
+    if !FileExist(settingsFile)
+        return
+
+    ; 환경 변수 변경 여부 추적
+    changedVars := []
+    inPathSection := false
+
+    ; UTF-8 인코딩으로 파일 읽기 설정
+    FileEncoding, UTF-8
+
+    ; 파일을 직접 읽어서 [경로] 섹션 파싱
+    Loop, Read, %settingsFile%
+    {
+        line := Trim(A_LoopReadLine)
+
+        ; 빈 줄이나 주석은 스킵
+        if (line = "" || SubStr(line, 1, 1) = ";")
+            continue
+
+        ; 섹션 헤더 확인
+        if (SubStr(line, 1, 1) = "[") {
+            ; [경로] 섹션인지 확인
+            if (InStr(line, "[경로]") || InStr(line, "[경로]"))
+                inPathSection := true
+            else
+                inPathSection := false
+            continue
+        }
+
+        ; [경로] 섹션 내의 key=value만 처리
+        if (inPathSection) {
+            pos := InStr(line, "=")
+            if (pos) {
+                varName := Trim(SubStr(line, 1, pos-1))
+                varValue := Trim(SubStr(line, pos+1))
+
+                ; 빈 값이면 스킵
+                if (varValue = "" || varValue = "ERROR")
+                    continue
+
+                ; 현재 등록된 값 확인
+                RegRead, existingValue, HKEY_CURRENT_USER\Environment, %varName%
+
+                ; 값이 다를 때만 업데이트
+                if (ErrorLevel || existingValue != varValue) {
+                    ; 레지스트리에 환경 변수 등록
+                    RegWrite, REG_EXPAND_SZ, HKEY_CURRENT_USER\Environment, %varName%, %varValue%
+                    if (!ErrorLevel)
+                        changedVars.Push(varName)
+                }
+            }
+        }
+    }
+
+    ; 환경 변수가 변경되었으면 시스템에 알림
+    if (changedVars.Length() > 0) {
+        ; WM_SETTINGCHANGE 메시지 전송 (탐색기가 환경 변수 변경을 인식)
+        ; HWND_BROADCAST = 0xFFFF, WM_SETTINGCHANGE = 0x001A
+        EnvUpdate  ; 환경 변수 갱신 알림
+
+        ; 등록된 변수 목록 만들기
+        varList := ""
+        for idx, name in changedVars
+        {
+            if (idx <= 5)  ; 최대 5개만 표시
+                varList .= "%" . name . "%`n"
+        }
+        if (changedVars.Length() > 5)
+            varList .= "... 외 " . (changedVars.Length() - 5) . "개"
+
+        TrayTip, JBBJ 작업도우미, 탐색기 환경 변수 등록됨:`n%varList%, 2, 1
     }
 }
 
