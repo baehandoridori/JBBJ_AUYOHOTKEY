@@ -61,6 +61,7 @@ global checkPathToLink := 1      ; 경로→링크 자동변환 토글 (기본 O
 global isConvertingClipboard := false  ; 클립보드 변환 중 플래그 (무한루프 방지)
 global g_LastOriginalPath := ""  ; Slack 하이퍼링크용 원본 경로
 global g_LastJbbjLink := ""      ; Slack 하이퍼링크용 jbbj:// 링크
+global g_LastWebUrl := ""        ; Slack 붙여넣기용 웹 뷰어 URL
 
 
 ; --- 추가: 툴팁용 전역 핸들 변수 (각 버튼에 대한 hWnd) ---
@@ -111,8 +112,9 @@ SetDrivePathVariables()
 ; jbbj:// 프로토콜 등록 확인 및 자동 등록
 CheckAndRegisterProtocol()
 
-; baeframe:// 프로토콜 등록 확인 및 자동 등록 [BAEFRAME 연동]
-CheckAndRegisterBaeframeProtocol()
+; baeframe:// 프로토콜은 Electron 앱에서 직접 등록함 (app.setAsDefaultProtocolClient)
+; 아래 함수는 더 이상 호출하지 않음 - Electron 내장 기능 사용
+; CheckAndRegisterBaeframeProtocol()
 
 ; 클립보드 변환 핸들러 등록 (G:\ 경로 → jbbj:// 또는 baeframe:// 링크)
 OnClipboardChange("ClipboardPathConverter")
@@ -926,13 +928,13 @@ return
 #IfWinActive ahk_exe slack.exe
 
 ^+v::
-    global g_LastOriginalPath, g_LastJbbjLink
+    global g_LastOriginalPath, g_LastJbbjLink, g_LastWebUrl, isConvertingClipboard
 
     ; ─────────────────────────────────────────────
     ; [디버그] 어떤 값이 저장되어 있는지 확인
     ; 문제 해결 후 이 줄을 주석 처리하세요
     ; ─────────────────────────────────────────────
-    ; MsgBox, 64, 디버그, 텍스트: %g_LastOriginalPath%`n`n링크: %g_LastJbbjLink%
+    ; MsgBox, 64, 디버그, 텍스트: %g_LastOriginalPath%`n`n링크: %g_LastJbbjLink%`n`n웹: %g_LastWebUrl%
 
     ; 저장된 경로가 없으면 일반 붙여넣기
     if (g_LastOriginalPath = "" || g_LastJbbjLink = "")
@@ -941,10 +943,16 @@ return
         return
     }
 
+    ; ★ 클립보드 변환 방지 (이 핫키 실행 중에는 ClipboardPathConverter가 덮어쓰지 않도록)
+    isConvertingClipboard := true
+
+    ; 웹 URL 미리 저장 (클립보드 변경 전에)
+    savedWebUrl := g_LastWebUrl
+
     ; 클립보드 백업
     savedClip := ClipboardAll
 
-    ; 1. 하이퍼링크 다이얼로그 먼저 열기 (Ctrl+Shift+U)
+    ; 1. 하이퍼링크 다이얼로그 열기 (Ctrl+Shift+U)
     Send, ^+u
     Sleep, 300
 
@@ -958,7 +966,7 @@ return
     Send, {Tab}
     Sleep, 100
 
-    ; 4. 링크 필드에 jbbj:// 링크 붙여넣기
+    ; 4. 링크 필드에 baeframe:// 링크 붙여넣기
     Clipboard := g_LastJbbjLink
     ClipWait, 1
     Send, ^v
@@ -966,12 +974,53 @@ return
 
     ; 5. 엔터로 확인
     Send, {Enter}
+    Sleep, 100
+
+    ; ─────────────────────────────────────────────
+    ; 6. 웹 뷰어 URL이 있으면 새 줄에 하이퍼링크로 추가
+    ; ─────────────────────────────────────────────
+    if (savedWebUrl != "")
+    {
+        ; 새 줄로 이동
+        Send, {Enter}
+        Sleep, 100
+
+        ; 웹 URL도 하이퍼링크로 만들기 (Ctrl+Shift+U)
+        Send, ^+u
+        Sleep, 300
+
+        ; 텍스트 필드에 표시 텍스트 입력
+        Clipboard := "📱 웹/모바일 뷰어"
+        ClipWait, 1
+        Send, ^v
+        Sleep, 100
+
+        ; Tab으로 링크 필드로 이동
+        Send, {Tab}
+        Sleep, 100
+
+        ; 링크 필드에 웹 URL 붙여넣기
+        Clipboard := savedWebUrl
+        ClipWait, 1
+        Send, ^v
+        Sleep, 50
+
+        ; 엔터로 확인
+        Send, {Enter}
+    }
 
     ; 클립보드 복원
     Clipboard := savedClip
     savedClip := ""
 
-    ToolTip, 하이퍼링크 생성 완료
+    ; ★ 클립보드 변환 다시 활성화
+    isConvertingClipboard := false
+
+    if (savedWebUrl != "") {
+        ToolTip, 하이퍼링크 + 웹링크 생성 완료
+    } else {
+        ToolTip, 하이퍼링크 생성 완료
+    }
     SetTimer, RemoveToolTip, -1500
 return
 
@@ -1368,7 +1417,7 @@ CheckAndRegisterBaeframeProtocol() {
 ; 생성된 링크는 g_LastJbbjLink에 저장되어 Ctrl+Shift+V로 사용
 ; --------------------------------------------------------------------------
 ClipboardPathConverter(clipType) {
-    global checkPathToLink, isConvertingClipboard, g_LastOriginalPath, g_LastJbbjLink
+    global checkPathToLink, isConvertingClipboard, g_LastOriginalPath, g_LastJbbjLink, g_LastWebUrl
 
     ; 비활성화 상태면 스킵
     if (checkPathToLink != 1)
@@ -1395,8 +1444,15 @@ ClipboardPathConverter(clipType) {
     ; G:\ ~ Z:\ 드라이브 경로인지 확인 (공유 드라이브 포함)
     if RegExMatch(clipText, "i)^[G-Z]:\\")
     {
-        ; 경로 정제 (앞뒤 공백, 줄바꿈 제거)
+        ; BAEFRAME 새 형식: 경로\n웹URL\n파일명 (줄바꿈 구분)
+        ; 첫 줄(경로), 둘째 줄(웹URL) 추출
         cleanPath := Trim(clipText)
+        webUrl := ""
+        if (InStr(cleanPath, "`n")) {
+            StringSplit, lines, cleanPath, `n
+            cleanPath := Trim(lines1)  ; 첫 번째 줄 = 파일 경로
+            webUrl := Trim(lines2)     ; 두 번째 줄 = 웹 뷰어 URL
+        }
         cleanPath := RegExReplace(cleanPath, "[\r\n]+$", "")
         cleanPath := RegExReplace(cleanPath, "^[\r\n]+", "")
 
@@ -1404,23 +1460,34 @@ ClipboardPathConverter(clipType) {
         urlPath := StrReplace(cleanPath, "\", "/")
 
         ; ─────────────────────────────────────────────────────────────────
-        ; [BAEFRAME 연동] .bframe 파일 감지 시 baeframe:// 링크 생성
+        ; [BAEFRAME 연동] .bframe 또는 .bplaylist 파일 감지 시 baeframe:// 링크 생성
         ; ─────────────────────────────────────────────────────────────────
         SplitPath, cleanPath,,, ext
-        if (ext = "bframe")
+        if (ext = "bframe" || ext = "bplaylist")
         {
-            ; baeframe:// 링크 생성
-            ; 예: G:\공유\파일.bframe → baeframe://G:/공유/파일.bframe
-            protocolLink := "baeframe://" . urlPath
+            ; baeframe:// 링크 생성 (.bframe과 .bplaylist 동일한 형식)
+            ; G:/ → G/ 로 변환 (Slack이 G:를 보면 file:///로 변환하는 문제 방지)
+            ; 예: G:\공유\파일.bframe → baeframe://G/공유/파일.bframe
+            ; 예: G:\공유\재생목록.bplaylist → baeframe://G/공유/재생목록.bplaylist
+            urlPathNoColon := RegExReplace(urlPath, "^([A-Za-z]):", "$1")
+            protocolLink := "baeframe://" . urlPathNoColon
 
             ; 전역 변수에 저장 (Slack Ctrl+Shift+V용)
             ; g_LastOriginalPath = 표시 텍스트 (G:\...\파일.bframe)
             ; g_LastJbbjLink = 하이퍼링크 URL (baeframe://...)
+            ; g_LastWebUrl = 웹 뷰어 URL (https://baeframe.vercel.app/...)
             g_LastOriginalPath := cleanPath
             g_LastJbbjLink := protocolLink
+            g_LastWebUrl := webUrl  ; 웹 뷰어 URL 저장
 
             ; 사용자에게 감지됨 알림
-            ToolTip, 🎬 BAEFRAME 경로 감지됨`nSlack: Ctrl+Shift+V로 하이퍼링크 붙여넣기
+            if (ext = "bplaylist") {
+                ToolTip, 📋 BAEFRAME 재생목록 감지됨`nSlack: Ctrl+Shift+V로 하이퍼링크 붙여넣기
+            } else if (webUrl != "") {
+                ToolTip, 🎬 BAEFRAME 경로 감지됨`nSlack: Ctrl+Shift+V로 하이퍼링크 + 웹링크 붙여넣기
+            } else {
+                ToolTip, 🎬 BAEFRAME 경로 감지됨`nSlack: Ctrl+Shift+V로 하이퍼링크 붙여넣기
+            }
             SetTimer, RemoveToolTip, -2500
         }
         ; ─────────────────────────────────────────────────────────────────
